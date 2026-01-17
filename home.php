@@ -74,6 +74,8 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     $check = $pdo->prepare("SELECT oid FROM orders WHERE uid = ? AND eid = ?");
                     $check->execute([$uid, $e['eid']]);
                     $already_ordered = $check->fetch();
+                    $desc_path = __DIR__ . "/events/{$e['eid']}.html";
+                    $desc_exists = file_exists($desc_path);
                 ?>
                 <tr>
                     <td><?php echo $e['eid']; ?></td>
@@ -95,10 +97,16 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     </td>
                     <td><?php echo htmlspecialchars($e['send_date']); ?></td>
                     <td>
-                        <?php if (!$already_ordered && $is_eligible && $stock > 0): ?>
+                        <?php if ($desc_exists): ?>
                             <a href="/events/<?php echo $e['eid']; ?>.html">详情</a>
                         <?php else: ?>
-                            --
+                            <span>详情</span>
+                        <?php endif; ?>
+                        <span> | </span>
+                        <?php if ($is_eligible): ?>
+                            <a href="order.php?id=<?php echo $e['eid']; ?>">预约</a>
+                        <?php else: ?>
+                            <span>预约</span>
                         <?php endif; ?>
                     </td>
                 </tr>
