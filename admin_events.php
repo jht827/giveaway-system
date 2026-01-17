@@ -44,6 +44,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 
+    if (isset($_POST['delete_event'], $_POST['eid'])) {
+        $eid = $_POST['eid'];
+
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("DELETE FROM orders WHERE eid = ?");
+            $stmt->execute([$eid]);
+
+            $stmt = $pdo->prepare("DELETE FROM events WHERE eid = ?");
+            $stmt->execute([$eid]);
+            $pdo->commit();
+            $msg = "活动 $eid 已删除，相关订单已清空。";
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $msg = "删除失败，请稍后再试。";
+        }
+    }
+
     // 2. Handle New Event Creation
     if (isset($_POST['add_event'])) {
         $eid = trim($_POST['eid']);
@@ -91,6 +111,7 @@ $events = $stmt->fetchAll();
         .btn-add { background: #28a745; color: #fff; padding: 8px 20px; border: none; }
         .btn-hide { background: #6c757d; color: #fff; }
         .btn-show { background: #007bff; color: #fff; }
+        .btn-delete { background: #dc3545; color: #fff; }
     </style>
 </head>
 <body>
@@ -191,6 +212,11 @@ $events = $stmt->fetchAll();
                             <button type="submit" name="toggle_visibility" value="hide" class="btn btn-hide">设为隐藏</button>
                         </form>
                     <?php endif; ?>
+                    <form method="POST" style="display:inline;" onsubmit="return confirm('确定要删除该活动及其所有订单吗？此操作不可撤销。') && confirm('请再次确认：删除后无法恢复，是否继续？');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                        <input type="hidden" name="eid" value="<?php echo htmlspecialchars($e['eid']); ?>">
+                        <button type="submit" name="delete_event" value="1" class="btn btn-delete">删除</button>
+                    </form>
                 </td>
             </tr>
             <?php endforeach; ?>
