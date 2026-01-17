@@ -25,7 +25,7 @@ $state_map = [
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的预约记录 - 旧一代无料发放登记系统</title>
+    <title>我的预约记录 - <?php echo htmlspecialchars($gsSiteName, ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
         body { font-family: "SimSun", serif; background: #f0f0f0; padding: 20px; }
         .container { background: white; border: 2px solid #333; padding: 20px; max-width: 800px; margin: 0 auto; }

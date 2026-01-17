@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>登录 - 旧一代无料发放登记系统</title>
+    <title>登录 - <?php echo htmlspecialchars($gsSiteName, ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
         body { font-family: "SimSun", "宋体", serif; background: #f0f0f0; padding: 20px; }
         .login-box { background: white; border: 2px solid #333; padding: 20px; width: 350px; margin: 0 auto; }
