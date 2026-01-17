@@ -1,7 +1,7 @@
 <?php
 /**
  * admin_export.php
- * Exports orders to a spreadsheet format (z1, a1, n1, p1, m1)
+ * Exports orders to a spreadsheet format (z1, a1, n1, p1, m1, o1)
  */
 
 require 'db.php';
@@ -28,11 +28,11 @@ $output = fopen('php://output', 'w');
 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
 // 4. Set Header Row
-fputcsv($output, ['z1', 'a1', 'n1', 'p1', 'm1']);
+fputcsv($output, ['z1', 'a1', 'n1', 'p1', 'm1', 'o1']);
 
 // 5. Fetch Data
 $stmt = $pdo->prepare("
-    SELECT a.postcode, a.addr, a.name, a.phone, o.choice, o.xa 
+    SELECT a.postcode, a.addr, a.name, a.phone, o.choice, o.xa, o.oid
     FROM orders o
     JOIN addresses a ON o.aid = a.aid
     WHERE o.eid = ?
@@ -49,7 +49,8 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $row['addr'],      // a1 (addr)
         $row['name'],      // n1 (name)
         $row['phone'],     // p1 (phone)
-        $m1                // m1 (note: R + choice)
+        $m1,               // m1 (note: R + choice)
+        $row['oid']        // o1 (order number)
     ]);
 }
 
