@@ -42,7 +42,7 @@ $orders = $pdo->query($sql)->fetchAll();
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>订单处理 - 杰瑞小吃</title>
+    <title>订单处理 - <?php echo htmlspecialchars($gsSiteName, ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
         body { font-family: "SimSun", serif; background: #333; color: #eee; font-size: 13px; }
         .container { background: #444; border: 2px solid #000; padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -70,7 +70,7 @@ $orders = $pdo->query($sql)->fetchAll();
         <table>
             <thead>
                 <tr>
-                    <th>订单/QQ</th>
+                    <th>订单/<?php echo htmlspecialchars($gsSocialPlatform, ENT_QUOTES, 'UTF-8'); ?></th>
                     <th>选项/费用</th>
                     <th>收货信息</th>
                     <th>物流更新</th>
@@ -79,7 +79,7 @@ $orders = $pdo->query($sql)->fetchAll();
             <tbody>
                 <?php foreach ($orders as $o): ?>
                 <tr>
-                    <td><b><?php echo htmlspecialchars($o['oid']); ?></b><br>QQ: <?php echo htmlspecialchars($o['qq']); ?></td>
+                    <td><b><?php echo htmlspecialchars($o['oid']); ?></b><br><?php echo htmlspecialchars($gsSocialPlatform, ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($o['qq']); ?></td>
                     <td>
                         选项: <?php echo $o['choice']; ?><br>
                         <?php 
