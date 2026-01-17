@@ -1,5 +1,7 @@
 # Giveaway System Database Schema (current)
 
+English | [中文](database-schema.zh.md)
+
 This document describes the **current** MySQL schema as it exists today.
 
 ## Database
