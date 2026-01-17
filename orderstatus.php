@@ -52,7 +52,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
 }
 
 // 3. Fetch Tracking Data
-$track_res = get_17track_events($order['logistics_no']);
+$track_res = get_tracking_events($order['logistics_no']);
 $tracking_data = $track_res['data'];
 $is_untrackable = ($track_res['status'] == 'untrackable');
 
