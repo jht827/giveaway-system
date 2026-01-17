@@ -1,48 +1,32 @@
 <?php
 /**
  * track_api.php
- * Fixed Path Logic for 17track v2 JSON Response
+ * Provider loader for tracking APIs.
  */
 
-function get_17track_events($logistics_no) {
-    $api_key = $GLOBALS['gsTrackingApiKey'] ?? '';
-    $events = [];
+function get_tracking_events($logistics_no) {
+    $provider = $GLOBALS['gsTrackingProvider'] ?? '17track';
+    $provider = preg_replace('/[^a-z0-9_-]/i', '', $provider);
+    $provider_file = __DIR__ . '/track_api/' . $provider . '.php';
 
-    // Rule: Skip if empty or internal '7' prefix post
-    if (empty($logistics_no) || $logistics_no[0] == '7') {
-        return ['status' => 'untrackable', 'data' => []];
+    if (!is_file($provider_file)) {
+        return [
+            'status' => 'provider_missing',
+            'data' => [],
+            'raw' => 'Provider file not found: ' . $provider
+        ];
     }
 
-    $post_data = json_encode([["number" => $logistics_no]]);
-    
-    $ch = curl_init('https://api.17track.net/track/v2/gettrackinfo');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        '17token: ' . $api_key
-    ]);
-    
-    $response = curl_exec($ch);
-    $result = json_decode($response, true);
-    curl_close($ch);
+    require_once $provider_file;
 
-    // --- ACCURATE DRILLING LOGIC ---
-    // We look into: data -> accepted[0] -> tracking -> providers[0] -> events
-    if (isset($result['data']['accepted'][0]['tracking']['providers'][0]['events'])) {
-        $raw_events = $result['data']['accepted'][0]['tracking']['providers'][0]['events'];
-        
-        foreach ($raw_events as $e) {
-            $events[] = [
-                'time' => str_replace('T', ' ', substr($e['time_iso'], 0, 19)),
-                'desc' => $e['description'],
-                'loc'  => $e['location'] ?? ''
-            ];
-        }
-        return ['status' => 'success', 'data' => $events, 'raw' => $response];
+    $handler = 'track_api_' . $provider . '_events';
+    if (!function_exists($handler)) {
+        return [
+            'status' => 'provider_invalid',
+            'data' => [],
+            'raw' => 'Provider handler missing: ' . $handler
+        ];
     }
 
-    // If we reach here, the structure didn't match
-    return ['status' => 'no_data', 'data' => [], 'raw' => $response];
+    return $handler($logistics_no);
 }

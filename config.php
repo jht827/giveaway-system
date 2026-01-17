@@ -20,7 +20,8 @@ $gsSocialPlatform = 'QQ';
 $gsSocialIdNumericOnly = true;
 
 ## Tracking API
-$gsTrackingApiKey = '';
+# Select the tracking provider file name (without .php) in /track_api
+$gsTrackingProvider = '17track';
 
 ## Database configuration
 $gsDbHost = '127.0.0.1';
