@@ -59,9 +59,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } else {
                 $header = fgetcsv($handle);
                 $expected = ['o1', 'l1', 's1'];
-                $normalized_header = array_map(function ($item) {
-                    return strtolower(trim((string)$item));
-                }, $header ?: []);
+                $normalized_header = [];
+                foreach ($header ?: [] as $index => $item) {
+                    $normalized = strtolower(trim((string)$item));
+                    if ($index === 0) {
+                        $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $normalized);
+                    }
+                    $normalized_header[] = $normalized;
+                }
 
                 if ($normalized_header !== $expected) {
                     $import_errors[] = "CSV 表头必须为 o1,l1,s1。";
