@@ -78,8 +78,6 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
                     $start_at_iso = $start_at_dt ? $start_at_dt->format('Y-m-d\\TH:i:sP') : '';
                     $due_at = $e['due_date'] ? new DateTime($e['due_date'], new DateTimeZone('Asia/Shanghai')) : null;
                     $is_expired = $due_at && $now > $due_at;
-                    $today = date('Y-m-d');
-                    $is_expired = $today > $e['due_date'];
 
                     // Check if this specific user already ordered this event
                     $check = $pdo->prepare("SELECT oid FROM orders WHERE uid = ? AND eid = ?");
@@ -88,7 +86,6 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
                     $desc_path = __DIR__ . "/events/{$e['eid']}.html";
                     $desc_exists = file_exists($desc_path);
                     $can_reserve = $is_eligible && $stock > 0 && !$already_ordered && !$is_expired && $is_open;
-                    $can_reserve = $is_eligible && $stock > 0 && !$already_ordered && !$is_expired;
                 ?>
                 <tr>
                     <td><?php echo $e['eid']; ?></td>
