@@ -1,5 +1,7 @@
 # Draft: 自动到点开启 (Auto-open events)
 
+English | [中文](auto-event-draft.zh.md)
+
 ## Goals
 - Add an event mode that **automatically opens for reservation** after a designated start time.
 - The event **remains visible** before opening, but if a user enters early, the UI/API returns “not time yet.”
