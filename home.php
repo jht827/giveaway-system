@@ -69,6 +69,8 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     $stock = $e['total'] - $e['used'];
                     $allowed = explode(',', $e['allow_group']);
                     $is_eligible = in_array($user_group, $allowed);
+                    $today = date('Y-m-d');
+                    $is_expired = $today > $e['due_date'];
 
                     // Check if this specific user already ordered this event
                     $check = $pdo->prepare("SELECT oid FROM orders WHERE uid = ? AND eid = ?");
@@ -76,6 +78,7 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     $already_ordered = $check->fetch();
                     $desc_path = __DIR__ . "/events/{$e['eid']}.html";
                     $desc_exists = file_exists($desc_path);
+                    $can_reserve = $is_eligible && $stock > 0 && !$already_ordered && !$is_expired;
                 ?>
                 <tr>
                     <td><?php echo $e['eid']; ?></td>
@@ -86,6 +89,8 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                         <?php 
                         if ($already_ordered) {
                             echo "<span class='status-done'>已预约</span>";
+                        } elseif ($is_expired) {
+                            echo "<span class='status-none'>已截止</span>";
                         } elseif ($stock <= 0) {
                             echo "<span class='status-none'>已领完</span>";
                         } elseif (!$is_eligible) {
@@ -103,7 +108,7 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                             <span>详情</span>
                         <?php endif; ?>
                         <span> | </span>
-                        <?php if ($is_eligible): ?>
+                        <?php if ($can_reserve): ?>
                             <a href="order.php?id=<?php echo $e['eid']; ?>">预约</a>
                         <?php else: ?>
                             <span>预约</span>
