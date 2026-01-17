@@ -27,6 +27,21 @@ if (isset($_GET['action']) && isset($_GET['uid'])) {
     } elseif ($action == 'enable') {
         $stmt = $pdo->prepare("UPDATE users SET disabled = 0 WHERE uid = ?");
         $stmt->execute([$target_uid]);
+    } elseif ($action == 'delete' && isset($_GET['confirm']) && $_GET['confirm'] === '1') {
+        $pdo->beginTransaction();
+        try {
+            $stmt_orders = $pdo->prepare("DELETE FROM orders WHERE uid = ?");
+            $stmt_orders->execute([$target_uid]);
+
+            $stmt_user = $pdo->prepare("DELETE FROM users WHERE uid = ?");
+            $stmt_user->execute([$target_uid]);
+
+            $pdo->commit();
+            $msg = "用户 $target_uid 及其所有订单已删除。";
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 }
 
@@ -52,6 +67,18 @@ $users = $stmt->fetchAll();
         .btn-gray { background: #6c757d; color: white; }
         .status-badge { font-weight: bold; padding: 2px 5px; }
     </style>
+    <script>
+        function confirmDeleteUser(uid) {
+            if (!confirm('即将删除该用户及其所有订单，是否继续？')) {
+                return false;
+            }
+            if (!confirm('此操作不可撤销，确认删除用户 ' + uid + '？')) {
+                return false;
+            }
+            window.location.href = '?action=delete&confirm=1&uid=' + encodeURIComponent(uid);
+            return false;
+        }
+    </script>
 </head>
 <body>
 
@@ -104,6 +131,8 @@ $users = $stmt->fetchAll();
                     <?php else: ?>
                         <a href="?action=enable&uid=<?php echo $u['uid']; ?>" class="btn btn-green">解封</a>
                     <?php endif; ?>
+
+                    <a href="#" class="btn btn-red" onclick="return confirmDeleteUser('<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>');">删除</a>
                 </td>
             </tr>
             <?php endforeach; ?>
