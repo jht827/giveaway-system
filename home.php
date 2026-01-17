@@ -13,9 +13,11 @@ $events = $stmt->fetchAll();
 $error_map = [
     'O01' => '您已经预约过此项目了。',
     'O03' => '您的等级不符合该项目的预约要求。',
-    'O04' => '份额已领完，下次早点来吧。'
+    'O04' => '份额已领完，下次早点来吧。',
+    'O05' => '还没到时间，请稍后再来。'
 ];
 $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误') : '';
+$now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -57,6 +59,7 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                 <th>ID</th>
                 <th>内容</th>
                 <th>剩余</th>
+                <th>开放时间</th>
                 <th>截止</th>
                 <th>状态</th>
                 <th>预计发出</th>
@@ -69,6 +72,10 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     $stock = $e['total'] - $e['used'];
                     $allowed = explode(',', $e['allow_group']);
                     $is_eligible = in_array($user_group, $allowed);
+                    $start_at_dt = $e['start_at'] ? new DateTime($e['start_at'], new DateTimeZone('Asia/Shanghai')) : null;
+                    $is_open = !$start_at_dt || $now >= $start_at_dt;
+                    $start_at_display = $start_at_dt ? $start_at_dt->format('Y-m-d H:i') : '--';
+                    $start_at_iso = $start_at_dt ? $start_at_dt->format('Y-m-d\\TH:i:sP') : '';
 
                     // Check if this specific user already ordered this event
                     $check = $pdo->prepare("SELECT oid FROM orders WHERE uid = ? AND eid = ?");
@@ -79,11 +86,22 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     <td><?php echo $e['eid']; ?></td>
                     <td><?php echo htmlspecialchars($e['name']); ?></td>
                     <td><?php echo $stock; ?></td>
+                    <td>
+                        <?php if ($start_at_dt): ?>
+                            <span class="start-time" data-start-at-iso="<?php echo htmlspecialchars($start_at_iso); ?>">
+                                <?php echo htmlspecialchars($start_at_display); ?>
+                            </span>
+                        <?php else: ?>
+                            --
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo $e['due_date']; ?></td>
                     <td>
                         <?php 
                         if ($already_ordered) {
                             echo "<span class='status-done'>已预约</span>";
+                        } elseif (!$is_open) {
+                            echo "<span style='color:#ffc107'>未到时间</span>";
                         } elseif ($stock <= 0) {
                             echo "<span class='status-none'>已领完</span>";
                         } elseif (!$is_eligible) {
@@ -95,7 +113,7 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
                     </td>
                     <td><?php echo htmlspecialchars($e['send_date']); ?></td>
                     <td>
-                        <?php if (!$already_ordered && $is_eligible && $stock > 0): ?>
+                        <?php if (!$already_ordered && $is_eligible && $stock > 0 && $is_open): ?>
                             <a href="/events/<?php echo $e['eid']; ?>.html">详情</a>
                         <?php else: ?>
                             --
@@ -106,6 +124,25 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
         </tbody>
     </table>
 </div>
+
+<script>
+    document.querySelectorAll('.start-time').forEach((node) => {
+        const iso = node.dataset.startAtIso;
+        if (!iso) {
+            return;
+        }
+        const utc8Offset = -480;
+        const localOffset = new Date().getTimezoneOffset();
+        if (localOffset !== utc8Offset) {
+            const localDate = new Date(iso);
+            if (!Number.isNaN(localDate.getTime())) {
+                const pad = (value) => String(value).padStart(2, '0');
+                const formatted = `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())} ${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+                node.textContent = formatted;
+            }
+        }
+    });
+</script>
 
 </body>
 </html>
