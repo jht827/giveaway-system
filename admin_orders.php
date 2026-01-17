@@ -8,6 +8,22 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
 }
 
 $msg = "";
+$import_summary = "";
+$import_errors = [];
+
+function parse_import_state($value) {
+    $normalized = strtolower(trim((string)$value));
+    if ($normalized === '0' || $normalized === 'unsent') {
+        return 0;
+    }
+    if ($normalized === '1' || $normalized === 'sent') {
+        return 1;
+    }
+    if ($normalized === '2' || $normalized === 'arrived') {
+        return 2;
+    }
+    return null;
+}
 
 // 1. Handle POST Actions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -30,6 +46,81 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt = $pdo->prepare("UPDATE orders SET logistics_no = ?, state = ? WHERE oid = ?");
         $stmt->execute([$l_no, $state, $oid]);
         $msg = "订单 $oid 状态已更新。";
+    }
+
+    // Batch Import (CSV)
+    if (isset($_POST['import_csv'])) {
+        if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+            $import_errors[] = "上传失败，请检查文件。";
+        } else {
+            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
+            if (!$handle) {
+                $import_errors[] = "无法读取上传文件。";
+            } else {
+                $header = fgetcsv($handle);
+                $expected = ['o1', 'l1', 's1'];
+                $normalized_header = array_map(function ($item) {
+                    return strtolower(trim((string)$item));
+                }, $header ?: []);
+
+                if ($normalized_header !== $expected) {
+                    $import_errors[] = "CSV 表头必须为 o1,l1,s1。";
+                } else {
+                    $updated = 0;
+                    $conflicts = 0;
+                    $line = 1;
+                    while (($row = fgetcsv($handle)) !== false) {
+                        $line++;
+                        $oid = trim($row[0] ?? '');
+                        $l_no = trim($row[1] ?? '');
+                        $state_raw = $row[2] ?? '';
+                        $state = parse_import_state($state_raw);
+
+                        if ($oid === '' || $l_no === '' || $state === null) {
+                            $conflicts++;
+                            $import_errors[] = "第 {$line} 行数据不完整或状态无效。";
+                            continue;
+                        }
+
+                        $stmt = $pdo->prepare("SELECT logistics_no, state FROM orders WHERE oid = ?");
+                        $stmt->execute([$oid]);
+                        $current = $stmt->fetch();
+                        if (!$current) {
+                            $conflicts++;
+                            $import_errors[] = "第 {$line} 行订单号 {$oid} 不存在。";
+                            continue;
+                        }
+
+                        $existing_no = trim((string)$current['logistics_no']);
+                        if ($existing_no !== '' && $existing_no !== $l_no) {
+                            $conflicts++;
+                            $import_errors[] = "第 {$line} 行订单 {$oid} 物流单号与当前记录冲突。";
+                            continue;
+                        }
+
+                        $dup_stmt = $pdo->prepare("SELECT oid FROM orders WHERE logistics_no = ? AND oid <> ?");
+                        $dup_stmt->execute([$l_no, $oid]);
+                        if ($dup_stmt->fetch()) {
+                            $conflicts++;
+                            $import_errors[] = "第 {$line} 行物流单号 {$l_no} 已被其他订单使用。";
+                            continue;
+                        }
+
+                        if ((int)$current['state'] > $state) {
+                            $conflicts++;
+                            $import_errors[] = "第 {$line} 行订单 {$oid} 状态回退冲突。";
+                            continue;
+                        }
+
+                        $stmt = $pdo->prepare("UPDATE orders SET logistics_no = ?, state = ? WHERE oid = ?");
+                        $stmt->execute([$l_no, $state, $oid]);
+                        $updated++;
+                    }
+                    $import_summary = "批量导入完成：更新 {$updated} 条，冲突 {$conflicts} 条。";
+                }
+                fclose($handle);
+            }
+        }
     }
 }
 
@@ -72,6 +163,24 @@ $orders = $pdo->query($sql)->fetchAll();
         </form>
 
         <?php if($msg) echo "<p style='color:#0f0;'>$msg</p>"; ?>
+        <?php if($import_summary) echo "<p style='color:#0f0;'>" . htmlspecialchars($import_summary, ENT_QUOTES, 'UTF-8') . "</p>"; ?>
+        <?php if($import_errors): ?>
+            <div style="color:#f66; margin-bottom:15px;">
+                <?php foreach ($import_errors as $error): ?>
+                    <div><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" enctype="multipart/form-data" style="margin-bottom:20px;">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+            <label>批量导入物流 CSV（表头：o1,l1,s1）:</label>
+            <input type="file" name="import_file" accept=".csv" required>
+            <button type="submit" name="import_csv">上传并更新</button>
+            <div style="font-size:12px; color:#bbb; margin-top:6px;">
+                s1 支持 0/1/2 或 unsent/sent/arrived（不允许状态回退）。
+            </div>
+        </form>
 
         <table>
             <thead>
@@ -122,6 +231,7 @@ $orders = $pdo->query($sql)->fetchAll();
                             状态: <select name="state" style="margin-top:5px;">
                                 <option value="0" <?php if($o['state']==0) echo 'selected'; ?>>待发货</option>
                                 <option value="1" <?php if($o['state']==1) echo 'selected'; ?>>已发出</option>
+                                <option value="2" <?php if($o['state']==2) echo 'selected'; ?>>已送达</option>
                             </select>
                             <button type="submit" name="update_logistics" style="margin-top:5px;">更新</button>
                         </form>
