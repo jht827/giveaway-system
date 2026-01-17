@@ -4,7 +4,7 @@
  * Provider loader for tracking APIs.
  */
 
-function get_tracking_events($logistics_no) {
+function get_tracking_events($logistics_no, $send_way = null) {
     $provider = $GLOBALS['gsTrackingProvider'] ?? '17track';
     $provider = preg_replace('/[^a-z0-9_-]/i', '', $provider);
     $provider_file = __DIR__ . '/track_api/' . $provider . '.php';
@@ -28,5 +28,5 @@ function get_tracking_events($logistics_no) {
         ];
     }
 
-    return $handler($logistics_no);
+    return $handler($logistics_no, $send_way);
 }
