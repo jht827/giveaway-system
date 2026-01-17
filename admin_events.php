@@ -6,6 +6,7 @@
 
 require 'db.php';
 session_start();
+require 'csrf.php';
 
 // Admin Check
 if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
@@ -14,39 +15,43 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
 
 $msg = "";
 
-// 1. Handle Visibility Toggle
-if (isset($_GET['action']) && isset($_GET['eid'])) {
-    $eid = $_GET['eid'];
-    // Logic: 1 means hidden, 0 means visible
-    $new_status = ($_GET['action'] == 'hide') ? 1 : 0;
-    
-    // FIX: Changed 'is_deleted' to 'is_hidden' to match your database
-    $stmt = $pdo->prepare("UPDATE events SET is_hidden = ? WHERE eid = ?");
-    $stmt->execute([$new_status, $eid]);
-    
-    header("Location: admin_events.php");
-    exit;
-}
+// 1. Handle POST Actions
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_require();
 
-// 2. Handle New Event Creation
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_event'])) {
-    $eid = trim($_POST['eid']);
-    $name = trim($_POST['name']);
-    $total = (int)$_POST['total'];
-    $due_date = $_POST['due_date'];
-    $send_date = $_POST['send_date'];
-    $send_way = $_POST['send_way']; 
-    $allow_group = trim($_POST['allow_group']);
-    $choice_amount = (int)$_POST['choice_amount'];
-    $xa_allow = isset($_POST['xa_allow']) ? 1 : 0;
-    $autogroup = isset($_POST['autogroup']) ? 1 : 0;
-    $is_hidden = isset($_POST['is_hidden_init']) ? 1 : 0;
+    if (isset($_POST['toggle_visibility'], $_POST['eid'])) {
+        $eid = $_POST['eid'];
+        // Logic: 1 means hidden, 0 means visible
+        $new_status = ($_POST['toggle_visibility'] === 'hide') ? 1 : 0;
+        
+        // FIX: Changed 'is_deleted' to 'is_hidden' to match your database
+        $stmt = $pdo->prepare("UPDATE events SET is_hidden = ? WHERE eid = ?");
+        $stmt->execute([$new_status, $eid]);
+        
+        header("Location: admin_events.php");
+        exit;
+    }
 
-    // FIX: Ensured the INSERT query uses 'is_hidden'
-    $stmt = $pdo->prepare("INSERT INTO events (eid, name, total, used, due_date, send_date, send_way, allow_group, choice_amount, xa_allow, autogroup, is_hidden) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)");
-    
-    if ($stmt->execute([$eid, $name, $total, $due_date, $send_date, $send_way, $allow_group, $choice_amount, $xa_allow, $autogroup, $is_hidden])) {
-        $msg = "活动 $eid 创建成功！";
+    // 2. Handle New Event Creation
+    if (isset($_POST['add_event'])) {
+        $eid = trim($_POST['eid']);
+        $name = trim($_POST['name']);
+        $total = (int)$_POST['total'];
+        $due_date = $_POST['due_date'];
+        $send_date = $_POST['send_date'];
+        $send_way = $_POST['send_way']; 
+        $allow_group = trim($_POST['allow_group']);
+        $choice_amount = (int)$_POST['choice_amount'];
+        $xa_allow = isset($_POST['xa_allow']) ? 1 : 0;
+        $autogroup = isset($_POST['autogroup']) ? 1 : 0;
+        $is_hidden = isset($_POST['is_hidden_init']) ? 1 : 0;
+
+        // FIX: Ensured the INSERT query uses 'is_hidden'
+        $stmt = $pdo->prepare("INSERT INTO events (eid, name, total, used, due_date, send_date, send_way, allow_group, choice_amount, xa_allow, autogroup, is_hidden) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        if ($stmt->execute([$eid, $name, $total, $due_date, $send_date, $send_way, $allow_group, $choice_amount, $xa_allow, $autogroup, $is_hidden])) {
+            $msg = "活动 $eid 创建成功！";
+        }
     }
 }
 
@@ -84,6 +89,7 @@ $events = $stmt->fetchAll();
     <div class="form-box">
         <h4>发布新无料/分发活动</h4>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <table style="background: transparent; border:none;">
                 <tr>
                     <td>EID (4位数字): <br><input type="text" name="eid" placeholder="0001" required pattern="\d{4}"></td>
@@ -147,9 +153,17 @@ $events = $stmt->fetchAll();
                 </td>
                 <td>
                     <?php if($e['is_hidden']): ?>
-                        <a href="?action=show&eid=<?php echo $e['eid']; ?>" class="btn btn-show">设为公开</a>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                            <input type="hidden" name="eid" value="<?php echo htmlspecialchars($e['eid']); ?>">
+                            <button type="submit" name="toggle_visibility" value="show" class="btn btn-show">设为公开</button>
+                        </form>
                     <?php else: ?>
-                        <a href="?action=hide&eid=<?php echo $e['eid']; ?>" class="btn btn-hide">设为隐藏</a>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                            <input type="hidden" name="eid" value="<?php echo htmlspecialchars($e['eid']); ?>">
+                            <button type="submit" name="toggle_visibility" value="hide" class="btn btn-hide">设为隐藏</button>
+                        </form>
                     <?php endif; ?>
                 </td>
             </tr>

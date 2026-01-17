@@ -29,6 +29,7 @@ if (!$order) {
 
 // 2. Handle POST Actions (Cancel/Hide)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
+    csrf_require();
     $action = $_POST['action'];
     try {
         $pdo->beginTransaction();
@@ -158,6 +159,7 @@ $state_text = [0 => "等待发放 (Pending)", 1 => "已发出 (Sent)", 2 => "确
     <div class="section" style="border-style: dashed; background: #fafafa;">
         <h4>订单管理 (Management)</h4>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <?php if ($order['state'] == 0): ?>
                 <p style="font-size: 0.85em; color: #666;">包裹发出前，您可以自主取消并退回份额。</p>
                 <button type="submit" name="action" value="cancel" class="btn btn-red" onclick="return confirm('确定取消预约吗？份额将立即退回。')">取消预约 (Cancel Order)</button>

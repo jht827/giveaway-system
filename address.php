@@ -10,41 +10,43 @@ if (isset($_GET['msg'])) {
     $msg_type = "error"; 
 }
 
-// 2. Handle New Address Submission
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_addr'])) {
-    $name = trim($_POST['name']); // Added: Recipient Name
-    $postcode = trim($_POST['postcode']);
-    $addr = trim($_POST['addr']);
-    $phone = trim($_POST['phone']);
-    $intl = isset($_POST['intl']) ? 1 : 0;
-    $is_default = isset($_POST['is_default']) ? 1 : 0;
+// 2. Handle POST Actions
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_require();
 
-    // If setting a new default, unset the old one first
-    if ($is_default) {
-        $pdo->prepare("UPDATE addresses SET is_default = 0 WHERE uid = ?")->execute([$uid]);
+    if (isset($_POST['save_addr'])) {
+        $name = trim($_POST['name']); // Added: Recipient Name
+        $postcode = trim($_POST['postcode']);
+        $addr = trim($_POST['addr']);
+        $phone = trim($_POST['phone']);
+        $intl = isset($_POST['intl']) ? 1 : 0;
+        $is_default = isset($_POST['is_default']) ? 1 : 0;
+
+        // If setting a new default, unset the old one first
+        if ($is_default) {
+            $pdo->prepare("UPDATE addresses SET is_default = 0 WHERE uid = ?")->execute([$uid]);
+        }
+
+        // Updated: Included 'name' column in the INSERT statement
+        $stmt = $pdo->prepare("INSERT INTO addresses (uid, name, postcode, addr, phone, is_intl, is_default, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
+        $stmt->execute([$uid, $name, $postcode, $addr, $phone, $intl, $is_default]);
+        $msg = "新地址已添加！";
+        $msg_type = "success";
     }
 
-    // Updated: Included 'name' column in the INSERT statement
-    $stmt = $pdo->prepare("INSERT INTO addresses (uid, name, postcode, addr, phone, is_intl, is_default, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
-    $stmt->execute([$uid, $name, $postcode, $addr, $phone, $intl, $is_default]);
-    $msg = "新地址已添加！";
-    $msg_type = "success";
-}
+    if (isset($_POST['set_default'])) {
+        $aid = $_POST['set_default'];
+        $pdo->prepare("UPDATE addresses SET is_default = 0 WHERE uid = ?")->execute([$uid]);
+        $pdo->prepare("UPDATE addresses SET is_default = 1 WHERE uid = ? AND aid = ?")->execute([$uid, $aid]);
+        header("Location: address.php"); exit;
+    }
 
-// 3. Handle Setting Default
-if (isset($_GET['set_default'])) {
-    $aid = $_GET['set_default'];
-    $pdo->prepare("UPDATE addresses SET is_default = 0 WHERE uid = ?")->execute([$uid]);
-    $pdo->prepare("UPDATE addresses SET is_default = 1 WHERE uid = ? AND aid = ?")->execute([$uid, $aid]);
-    header("Location: address.php"); exit;
-}
-
-// 4. Handle SOFT DELETE (Mark as is_deleted = 1)
-if (isset($_GET['delete'])) {
-    $aid = $_GET['delete'];
-    $stmt = $pdo->prepare("UPDATE addresses SET is_deleted = 1 WHERE uid = ? AND aid = ?");
-    $stmt->execute([$uid, $aid]);
-    header("Location: address.php"); exit;
+    if (isset($_POST['delete'])) {
+        $aid = $_POST['delete'];
+        $stmt = $pdo->prepare("UPDATE addresses SET is_deleted = 1 WHERE uid = ? AND aid = ?");
+        $stmt->execute([$uid, $aid]);
+        header("Location: address.php"); exit;
+    }
 }
 
 // 5. Fetch all active addresses
@@ -92,9 +94,15 @@ $my_addresses = $stmt->fetchAll();
             </td>
             <td>
                 <?php if(!$a['is_default']): ?>
-                    <a href="?set_default=<?php echo $a['aid']; ?>">设为默认</a><br>
+                    <form method="POST" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                        <button type="submit" name="set_default" value="<?php echo $a['aid']; ?>" style="background:none;border:none;color:#00f;padding:0;cursor:pointer;">设为默认</button>
+                    </form>
                 <?php endif; ?>
-                <a href="?delete=<?php echo $a['aid']; ?>" style="color:red;" onclick="return confirm('确定删除该地址吗？这不会影响已生成的预约。')">删除</a>
+                <form method="POST" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                    <button type="submit" name="delete" value="<?php echo $a['aid']; ?>" style="background:none;border:none;color:red;padding:0;cursor:pointer;" onclick="return confirm('确定删除该地址吗？这不会影响已生成的预约。')">删除</button>
+                </form>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -106,6 +114,7 @@ $my_addresses = $stmt->fetchAll();
     
     <h4>添加新地址</h4>
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
         收件人姓名 (n1):
         <input type="text" name="name" required placeholder="请不要填写的太离谱">
         

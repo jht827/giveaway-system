@@ -1,6 +1,7 @@
 <?php
 session_start();
 require 'db.php';
+require 'csrf.php';
 
 // 1. Check if the session exists at all
 if (!isset($_SESSION['uid'])) {
