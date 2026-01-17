@@ -85,7 +85,11 @@ $orders = $pdo->query($sql)->fetchAll();
             <tbody>
                 <?php foreach ($orders as $o): ?>
                 <tr>
-                    <td><b><?php echo htmlspecialchars($o['oid']); ?></b><br><?php echo htmlspecialchars($gsSocialPlatform, ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($o['qq']); ?></td>
+                    <td>
+                        <b><?php echo htmlspecialchars($o['oid']); ?></b><br>
+                        UID: <?php echo htmlspecialchars($o['uid']); ?><br>
+                        <?php echo htmlspecialchars($gsSocialPlatform, ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($o['qq']); ?>
+                    </td>
                     <td>
                         选项: <?php echo $o['choice']; ?><br>
                         <?php 
