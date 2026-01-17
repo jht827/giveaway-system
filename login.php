@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     // 3. Check if activated (ERR L09)
     elseif ($user['verified'] == 0) {
-        $error_msg = "ERR L09: 用户未激活 (请联系杰瑞)";
+        $error_msg = "ERR L09: 用户未激活 (请联系{$gsOwnerName})";
     }
     // 4. Check if disabled (ERR L10)
     elseif ($user['disabled'] == 1) {

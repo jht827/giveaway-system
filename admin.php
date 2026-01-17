@@ -15,7 +15,7 @@ $event_count = $pdo->query("SELECT COUNT(*) FROM events WHERE is_hidden = 0")->f
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>管理总线 - Jerry Dist Sys</title>
+    <title>管理总线 - <?php echo htmlspecialchars($gsSiteName, ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
         body { font-family: "SimSun", serif; background: #222; color: #0f0; padding: 40px; }
         .hub { border: 2px solid #0f0; padding: 30px; max-width: 600px; margin: 0 auto; box-shadow: 10px 10px 0px #000; }
@@ -26,7 +26,7 @@ $event_count = $pdo->query("SELECT COUNT(*) FROM events WHERE is_hidden = 0")->f
 </head>
 <body>
     <div class="hub">
-        <h2>[ 杰瑞小吃管理总线 v1.0 ]</h2>
+        <h2>[ <?php echo htmlspecialchars($gsSiteName, ENT_QUOTES, 'UTF-8'); ?>管理总线 <?php echo htmlspecialchars($gsAdminVersion, ENT_QUOTES, 'UTF-8'); ?> ]</h2>
         <hr border="1">
         <a href="admin_users.php" class="menu-item">
             用户审核管理 (Users) <span class="stat">[ <?php echo $user_count; ?> 待审核 ]</span>
