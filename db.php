@@ -2,6 +2,8 @@
 define('GIVEAWAY_SYSTEM', true);
 require __DIR__ . '/config.php';
 
+date_default_timezone_set('Asia/Shanghai');
+
 $host = $gsDbHost;
 $db   = $gsDbName;
 $user = $gsDbUser;
@@ -17,6 +19,7 @@ $options = [
 
 try {
      $pdo = new PDO($dsn, $user, $pass, $options);
+     $pdo->exec("SET time_zone = '+08:00'");
 } catch (\PDOException $e) {
      throw new \PDOException($e->getMessage(), (int)$e->getCode());
 }

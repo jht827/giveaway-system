@@ -32,12 +32,20 @@ try {
     }
 
     // 2. STOCK CHECK: Lock the Event row (Prevent Race Conditions)
-    $stmt_event = $pdo->prepare("SELECT total, used FROM events WHERE eid = ? FOR UPDATE");
+    $stmt_event = $pdo->prepare("SELECT total, used, start_at FROM events WHERE eid = ? FOR UPDATE");
     $stmt_event->execute([$eid]);
     $event = $stmt_event->fetch();
 
     if (!$event) {
         throw new Exception("ERR: 活动不存在");
+    }
+
+    if (!empty($event['start_at'])) {
+        $start_at = new DateTime($event['start_at'], new DateTimeZone('Asia/Shanghai'));
+        $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
+        if ($now < $start_at) {
+            throw new Exception("O05");
+        }
     }
 
     $current_used = (int)$event['used'];
@@ -105,7 +113,7 @@ try {
     }
     
     $err = $e->getMessage();
-    if (in_array($err, ['O01', 'O03', 'O04'])) {
+    if (in_array($err, ['O01', 'O03', 'O04', 'O05'])) {
         header("Location: home.php?err=" . $err);
     } else {
         die("提交失败: " . htmlspecialchars($err));
