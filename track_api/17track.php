@@ -4,9 +4,10 @@
  * NOTE: Configure your 17track API key in config.php.
  */
 
-function track_api_17track_events($logistics_no) {
+function track_api_17track_events($logistics_no, $send_way = null) {
     $logistics_no = trim((string)$logistics_no);
-    if ($logistics_no === '' || $logistics_no[0] === '7') {
+    $send_way = strtolower(trim((string)$send_way));
+    if ($logistics_no === '' || ($send_way === 'post' && $logistics_no[0] === '7')) {
         return ['status' => 'untrackable', 'data' => []];
     }
 
