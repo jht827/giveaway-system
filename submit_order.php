@@ -40,7 +40,21 @@ try {
         throw new Exception("ERR: 活动不存在");
     }
 
-    $remaining = $event['total'] - $event['used'];
+    $current_used = (int)$event['used'];
+
+    // 2.1 ALIGN SEQUENCE: Ensure used count matches existing orders
+    $stmt_max_seq = $pdo->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(oid, '-', -1) AS UNSIGNED)) AS max_seq
+        FROM orders
+        WHERE eid = ?
+        FOR UPDATE
+    ");
+    $stmt_max_seq->execute([$eid]);
+    $max_seq_row = $stmt_max_seq->fetch();
+    $max_seq = $max_seq_row && $max_seq_row['max_seq'] !== null ? (int)$max_seq_row['max_seq'] : 0;
+
+    $effective_used = max($current_used, $max_seq);
+    $remaining = $event['total'] - $effective_used;
     if ($remaining <= 0) {
         throw new Exception("O04"); // Out of stock
     }
@@ -53,7 +67,8 @@ try {
     }
 
     // 4. GENERATE OID
-    $next_seq = str_pad($event['used'] + 1, 4, '0', STR_PAD_LEFT);
+    $next_seq_num = $effective_used + 1;
+    $next_seq = str_pad($next_seq_num, 4, '0', STR_PAD_LEFT);
     $oid = "J-" . $eid . "-" . $next_seq;
 
     // 5. INSERT ORDER: Updated with 'X' status and NOW() timestamp
@@ -65,8 +80,8 @@ try {
     $stmt_insert->execute([$oid, $uid, $eid, $aid, $choice, $xa_request]);
 
     // 6. UPDATE EVENT: Increment count
-    $stmt_update = $pdo->prepare("UPDATE events SET used = used + 1 WHERE eid = ?");
-    $stmt_update->execute([$eid]);
+    $stmt_update = $pdo->prepare("UPDATE events SET used = ? WHERE eid = ?");
+    $stmt_update->execute([$next_seq_num, $eid]);
 
     $pdo->commit();
     
