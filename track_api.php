@@ -5,7 +5,7 @@
  */
 
 function get_17track_events($logistics_no) {
-    $api_key = 'D9DED5ED9FC825EA3FEC815D8FD1AF9C';
+    $api_key = '';
     $events = [];
 
     // Rule: Skip if empty or internal '7' prefix post

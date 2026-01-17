@@ -1,8 +1,8 @@
 <?php
 $host = '127.0.0.1';
 $db   = 'giveaway_sys'; // Your DB name
-$user = 'giveaway_sys'; // From aaPanel
-$pass = 'NNisnkZASYJcfc5R'; // From aaPanel
+$user = 'giveaway_sys'; // DB User 
+$pass = 'urdbpassword'; // DB Password
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
