@@ -17,9 +17,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     elseif (strlen($pwd) < 8) {
         $error_msg = "ERR L02: 密码长度必须至少为8位";
     }
-    // --- 3. Validate social ID (ERR L04: numbers only when configured) ---
+    // --- 3. Validate social ID (ERR L04: required, L04B: numbers only when configured) ---
+    elseif ($socialId === '') {
+        $error_msg = "ERR L04: {$gsSocialPlatform}号不能为空";
+    }
     elseif ($gsSocialIdNumericOnly && !ctype_digit($socialId)) {
-        $error_msg = "ERR L04: {$gsSocialPlatform}号仅可由数字构成";
+        $error_msg = "ERR L04B: {$gsSocialPlatform}号仅可由数字构成";
     }
     else {
         // --- 4. Check for duplicates (ERR L03 & L05) ---
