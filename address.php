@@ -56,7 +56,7 @@ $my_addresses = $stmt->fetchAll();
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>地址管理 - 旧一代无料分发登记系统</title>
+    <title>地址管理 - 旧一代无料发放登记系统</title>
     <style>
         body { font-family: "SimSun", serif; background: #f0f0f0; padding: 20px; }
         .box { background: white; border: 2px solid #333; padding: 20px; max-width: 600px; margin: 0 auto; }
@@ -87,7 +87,7 @@ $my_addresses = $stmt->fetchAll();
             <td>
                 <?php if($a['is_default']) echo "<span class='default-badge'>默认</span>"; ?>
                 <b><?php echo htmlspecialchars($a['name']); ?></b> (<?php echo htmlspecialchars($a['phone']); ?>)<br>
-                <small>[<?php echo $a['postcode']; ?>]</small> <?php echo htmlspecialchars($a['addr']); ?>
+                <small>[<?php echo htmlspecialchars($a['postcode']); ?>]</small> <?php echo htmlspecialchars($a['addr']); ?>
                 <?php if($a['is_intl']) echo " <small>(国际)</small>"; ?>
             </td>
             <td>
