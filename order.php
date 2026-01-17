@@ -32,6 +32,7 @@ if (!$addresses) {
 <div class="box">
     <h2>预约: <?php echo htmlspecialchars($event['name']); ?></h2>
     <form action="submit_order.php" method="POST">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
         <input type="hidden" name="eid" value="<?php echo $event['eid']; ?>">
         
         <p>选择收货地址:</p>

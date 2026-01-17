@@ -1,6 +1,7 @@
 <?php
 require 'db.php';
 session_start();
+require 'csrf.php';
 
 if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
     die("Access Denied.");
@@ -8,23 +9,28 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
 
 $msg = "";
 
-// 1. Handle Manual Payment Confirmation (X -> R)
-if (isset($_GET['confirm_pay']) && isset($_GET['oid'])) {
-    $oid = $_GET['oid'];
-    $stmt = $pdo->prepare("UPDATE orders SET xa = 'R' WHERE oid = ? AND xa = 'X'");
-    $stmt->execute([$oid]);
-    $msg = "订单 $oid 已确认支付，转为挂号。";
-}
+// 1. Handle POST Actions
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_require();
 
-// 2. Update Order Logistics (Standard Update)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_logistics'])) {
-    $oid = $_POST['oid'];
-    $l_no = trim($_POST['logistics_no']);
-    $state = (int)$_POST['state'];
+    // Manual Payment Confirmation (X -> R)
+    if (isset($_POST['confirm_pay']) && isset($_POST['oid'])) {
+        $oid = $_POST['oid'];
+        $stmt = $pdo->prepare("UPDATE orders SET xa = 'R' WHERE oid = ? AND xa = 'X'");
+        $stmt->execute([$oid]);
+        $msg = "订单 $oid 已确认支付，转为挂号。";
+    }
 
-    $stmt = $pdo->prepare("UPDATE orders SET logistics_no = ?, state = ? WHERE oid = ?");
-    $stmt->execute([$l_no, $state, $oid]);
-    $msg = "订单 $oid 状态已更新。";
+    // Update Order Logistics (Standard Update)
+    if (isset($_POST['update_logistics'])) {
+        $oid = $_POST['oid'];
+        $l_no = trim($_POST['logistics_no']);
+        $state = (int)$_POST['state'];
+
+        $stmt = $pdo->prepare("UPDATE orders SET logistics_no = ?, state = ? WHERE oid = ?");
+        $stmt->execute([$l_no, $state, $oid]);
+        $msg = "订单 $oid 状态已更新。";
+    }
 }
 
 // 3. Fetch Orders
@@ -85,7 +91,12 @@ $orders = $pdo->query($sql)->fetchAll();
                         <?php 
                         if ($o['xa'] == 'X') {
                             echo '<span style="color:#ffc107;">[待付挂号费]</span><br>';
-                            echo '<a href="?confirm_pay=1&oid='.$o['oid'].'&eid='.$eid_filter.'" class="pay-btn" onclick="return confirm(\'确定已收到该用户的3元支付吗？\')">确认收款</a>';
+                            echo '<form method="POST" style="display:inline;">'
+                                . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token()) . '">'
+                                . '<input type="hidden" name="oid" value="' . htmlspecialchars($o['oid']) . '">'
+                                . '<input type="hidden" name="confirm_pay" value="1">'
+                                . '<button type="submit" class="pay-btn" onclick="return confirm(\'确定已收到该用户的3元支付吗？\')">确认收款</button>'
+                                . '</form>';
                         } elseif ($o['xa'] == 'R') {
                             echo '<span style="color:#0f0;">[已付挂号]</span>';
                         } else {
@@ -101,6 +112,7 @@ $orders = $pdo->query($sql)->fetchAll();
                     </td>
                     <td>
                         <form method="POST">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                             <input type="hidden" name="oid" value="<?php echo htmlspecialchars($o['oid']); ?>">
                             单号: <input type="text" name="logistics_no" value="<?php echo htmlspecialchars($o['logistics_no']); ?>" style="width:120px;"><br>
                             状态: <select name="state" style="margin-top:5px;">

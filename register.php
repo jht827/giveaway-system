@@ -1,10 +1,13 @@
 <?php
 require 'db.php'; // Connect to the database
+session_start();
+require 'csrf.php';
 
 $error_msg = "";
 $success_msg = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_require();
     $uid = trim($_POST['uid']);
     $pwd = $_POST['pwd'];
     $qq = trim($_POST['qq']);
@@ -70,6 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php if($success_msg) echo "<p class='success'>$success_msg</p>"; ?>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
         用户名 (a-z, 0-9):
         <input type="text" name="uid" required>
         

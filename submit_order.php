@@ -11,6 +11,8 @@ if ($_SERVER["REQUEST_METHOD"] != "POST") {
     exit;
 }
 
+csrf_require();
+
 $uid    = $_SESSION['uid'];
 $eid    = $_POST['eid'] ?? '';
 $aid    = $_POST['aid'] ?? ''; 

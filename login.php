@@ -1,6 +1,7 @@
 <?php
 require 'db.php';
 session_start(); // Starts a session to keep the user logged in
+require 'csrf.php';
 
 $error_msg = "";
 
@@ -11,6 +12,7 @@ if (isset($_SESSION['uid'])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_require();
     $uid = trim($_POST['uid']);
     $pwd = $_POST['pwd'];
 
@@ -65,6 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php if($error_msg) echo "<p class='error'>$error_msg</p>"; ?>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
         用户名:
         <input type="text" name="uid" required>
         
