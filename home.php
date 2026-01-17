@@ -21,7 +21,7 @@ $display_err = isset($_GET['err']) ? ($error_map[$_GET['err']] ?? '未知错误'
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>用户主页 - 旧一代无料分发登记系统</title>
+    <title>用户主页 - 旧一代无料发放登记系统</title>
     <style>
         body { font-family: "SimSun", "宋体", serif; background: #f0f0f0; padding: 20px; }
         .container { background: white; border: 2px solid #333; padding: 20px; max-width: 1000px; margin: 0 auto; }

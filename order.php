@@ -21,7 +21,7 @@ if (!$addresses) {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>预约确认 旧一代无料分发登记系统</title>
+    <title>预约确认 - 旧一代无料发放登记系统</title>
     <style>
         body { font-family: "SimSun", serif; background: #f0f0f0; padding: 20px; }
         .box { background: white; border: 2px solid #333; padding: 20px; width: 450px; margin: 0 auto; }
@@ -38,7 +38,7 @@ if (!$addresses) {
         <select name="aid" required>
             <?php foreach($addresses as $a): ?>
                 <option value="<?php echo $a['aid']; ?>">
-                    <?php echo ($a['is_default'] ? "[默认] " : "") . $a['postcode'] . " - " . mb_substr($a['addr'], 0, 15) . "..."; ?>
+                    <?php echo htmlspecialchars(($a['is_default'] ? "[默认] " : "") . $a['postcode'] . " - " . mb_substr($a['addr'], 0, 15) . "..."); ?>
                 </option>
             <?php endforeach; ?>
         </select>

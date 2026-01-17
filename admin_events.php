@@ -101,7 +101,7 @@ $events = $stmt->fetchAll();
                     </td>
                 </tr>
                 <tr>
-                    <td>允许组: <br><input type="text" name="allow_group" value="user,auto"></td>
+                    <td>允许组: <br><input type="text" name="allow_group" value="new,auto"></td>
                     <td>选项数: <br><input type="number" name="choice_amount" value="1"></td>
                     <td>
                         <label><input type="checkbox" name="xa_allow" checked> 允许挂号</label><br>
@@ -159,7 +159,7 @@ $events = $stmt->fetchAll();
 
     <div style="margin-top:20px;">
         <a href="admin_users.php" style="color:#0f0;">用户管理</a> | 
-        <a href="home.php" style="color:#0f0;">返回前台</a>
+        <a href="admin.php" style="color:#0f0;">返回后台</a>
     </div>
 </div>
 

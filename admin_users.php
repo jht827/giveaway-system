@@ -111,7 +111,7 @@ $users = $stmt->fetchAll();
     </table>
     
     <div style="margin-top:20px;">
-        <a href="home.php" style="color:#0f0;"><- 返回前台</a>
+        <a href="admin.php" style="color:#0f0;"><- 返回后台</a>
     </div>
 </div>
 

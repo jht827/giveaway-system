@@ -79,7 +79,7 @@ $orders = $pdo->query($sql)->fetchAll();
             <tbody>
                 <?php foreach ($orders as $o): ?>
                 <tr>
-                    <td><b><?php echo $o['oid']; ?></b><br>QQ: <?php echo $o['qq']; ?></td>
+                    <td><b><?php echo htmlspecialchars($o['oid']); ?></b><br>QQ: <?php echo htmlspecialchars($o['qq']); ?></td>
                     <td>
                         选项: <?php echo $o['choice']; ?><br>
                         <?php 
@@ -95,14 +95,14 @@ $orders = $pdo->query($sql)->fetchAll();
                     </td>
                     <td>
                         <div class="address-box">
-                            <b><?php echo htmlspecialchars($o['recipient_name']); ?></b> (<?php echo $o['phone']; ?>)<br>
-                            [<?php echo $o['postcode']; ?>] <?php echo htmlspecialchars($o['addr']); ?>
+                            <b><?php echo htmlspecialchars($o['recipient_name']); ?></b> (<?php echo htmlspecialchars($o['phone']); ?>)<br>
+                            [<?php echo htmlspecialchars($o['postcode']); ?>] <?php echo htmlspecialchars($o['addr']); ?>
                         </div>
                     </td>
                     <td>
                         <form method="POST">
-                            <input type="hidden" name="oid" value="<?php echo $o['oid']; ?>">
-                            单号: <input type="text" name="logistics_no" value="<?php echo $o['logistics_no']; ?>" style="width:120px;"><br>
+                            <input type="hidden" name="oid" value="<?php echo htmlspecialchars($o['oid']); ?>">
+                            单号: <input type="text" name="logistics_no" value="<?php echo htmlspecialchars($o['logistics_no']); ?>" style="width:120px;"><br>
                             状态: <select name="state" style="margin-top:5px;">
                                 <option value="0" <?php if($o['state']==0) echo 'selected'; ?>>待发货</option>
                                 <option value="1" <?php if($o['state']==1) echo 'selected'; ?>>已发出</option>
@@ -114,6 +114,9 @@ $orders = $pdo->query($sql)->fetchAll();
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <div style="margin-top:20px;">
+            <a href="admin.php" style="color:#0f0;"><- 返回后台</a>
+        </div>
     </div>
 </body>
 </html>

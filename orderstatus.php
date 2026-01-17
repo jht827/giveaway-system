@@ -146,7 +146,7 @@ $state_text = [0 => "等待发放 (Pending)", 1 => "已发出 (Sent)", 2 => "确
                 </div>
             <?php else: ?>
                 <p style="color: #666; font-style: italic; margin-top: 15px;">
-                    暂时无法获取实时动态。您可以手动前往 <a href="https://www.17track.net/zh-cn/track?nums=<?php echo $order['logistics_no']; ?>" target="_blank" style="color:blue;">17track官网</a> 尝试查询。
+                    暂时无法获取实时动态。您可以手动前往 <a href="https://www.17track.net/zh-cn/track?nums=<?php echo urlencode($order['logistics_no']); ?>" target="_blank" style="color:blue;">17track官网</a> 尝试查询。
                 </p>
             <?php endif; ?>
 
