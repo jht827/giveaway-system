@@ -40,10 +40,23 @@ try {
         throw new Exception("ERR: 活动不存在");
     }
 
-    $remaining = $event['total'] - $event['used'];
+    $current_used = (int)$event['used'];
+
+    $remaining = $event['total'] - $current_used;
     if ($remaining <= 0) {
         throw new Exception("O04"); // Out of stock
     }
+
+    // 2.1 ALIGN SEQUENCE: Ensure OID sequence is unique without affecting stock
+    $stmt_max_seq = $pdo->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(oid, '-', -1) AS UNSIGNED)) AS max_seq
+        FROM orders
+        WHERE eid = ?
+        FOR UPDATE
+    ");
+    $stmt_max_seq->execute([$eid]);
+    $max_seq_row = $stmt_max_seq->fetch();
+    $max_seq = $max_seq_row && $max_seq_row['max_seq'] !== null ? (int)$max_seq_row['max_seq'] : 0;
 
     // 3. DUPLICATE CHECK
     $stmt_dup = $pdo->prepare("SELECT oid FROM orders WHERE uid = ? AND eid = ?");
@@ -53,7 +66,8 @@ try {
     }
 
     // 4. GENERATE OID
-    $next_seq = str_pad($event['used'] + 1, 4, '0', STR_PAD_LEFT);
+    $next_seq_num = max($current_used, $max_seq) + 1;
+    $next_seq = str_pad($next_seq_num, 4, '0', STR_PAD_LEFT);
     $oid = "J-" . $eid . "-" . $next_seq;
 
     // 5. INSERT ORDER: Updated with 'X' status and NOW() timestamp
