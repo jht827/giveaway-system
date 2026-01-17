@@ -1,9 +1,12 @@
 <?php
-$host = '127.0.0.1';
-$db   = 'giveaway_sys'; // Your DB name
-$user = 'giveaway_sys'; // DB User 
-$pass = 'urdbpassword'; // DB Password
-$charset = 'utf8mb4';
+define('GIVEAWAY_SYSTEM', true);
+require __DIR__ . '/config.php';
+
+$host = $gsDbHost;
+$db   = $gsDbName;
+$user = $gsDbUser;
+$pass = $gsDbPass;
+$charset = $gsDbCharset;
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [

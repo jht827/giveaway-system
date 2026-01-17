@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     // 3. Check if activated (ERR L09)
     elseif ($user['verified'] == 0) {
-        $error_msg = "ERR L09: 用户未激活 (请联系杰瑞)";
+        $error_msg = "ERR L09: 用户未激活 (请联系{$gsOwnerName})";
     }
     // 4. Check if disabled (ERR L10)
     elseif ($user['disabled'] == 1) {
@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>登录 - 旧一代无料发放登记系统</title>
+    <title>登录 - <?php echo htmlspecialchars($gsSiteName, ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
         body { font-family: "SimSun", "宋体", serif; background: #f0f0f0; padding: 20px; }
         .login-box { background: white; border: 2px solid #333; padding: 20px; width: 350px; margin: 0 auto; }

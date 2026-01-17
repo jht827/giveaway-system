@@ -65,7 +65,7 @@ $users = $stmt->fetchAll();
         <thead>
             <tr>
                 <th>UID (用户名)</th>
-                <th>QQ号</th>
+                <th><?php echo htmlspecialchars($gsSocialPlatform, ENT_QUOTES, 'UTF-8'); ?>号</th>
                 <th>用户组</th>
                 <th>激活状态</th>
                 <th>封禁状态</th>

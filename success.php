@@ -23,8 +23,8 @@ $oid = $_GET['id'] ?? 'Unknown';
     
     <p style="text-align: left; background: #fffbe6; padding: 10px; border: 1px solid #ffe58f;">
         <b>注意：</b><br>
-        如果您选择了加挂号发送，请通过 QQ 向杰瑞支付 3 元。<br>
-        付款时请备注您的预约号，并在付款后通知杰瑞更新状态。
+        如果您选择了加挂号发送，请通过 <?php echo htmlspecialchars($gsSocialPlatform, ENT_QUOTES, 'UTF-8'); ?> 向<?php echo htmlspecialchars($gsOwnerName, ENT_QUOTES, 'UTF-8'); ?>支付 3 元。<br>
+        付款时请备注您的预约号，并在付款后通知<?php echo htmlspecialchars($gsOwnerName, ENT_QUOTES, 'UTF-8'); ?>更新状态。
     </p>
 
     <div style="margin-top: 30px;">
