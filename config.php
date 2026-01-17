@@ -22,6 +22,7 @@ $gsSocialIdNumericOnly = true;
 ## Tracking API
 # Select the tracking provider file name (without .php) in /track_api
 $gsTrackingProvider = '17track';
+$gs17TrackApiKey = '';
 
 ## Database configuration
 $gsDbHost = '127.0.0.1';
