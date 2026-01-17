@@ -76,11 +76,16 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
                     $is_open = !$start_at_dt || $now >= $start_at_dt;
                     $start_at_display = $start_at_dt ? $start_at_dt->format('Y-m-d H:i') : '--';
                     $start_at_iso = $start_at_dt ? $start_at_dt->format('Y-m-d\\TH:i:sP') : '';
+                    $due_at = $e['due_date'] ? new DateTime($e['due_date'], new DateTimeZone('Asia/Shanghai')) : null;
+                    $is_expired = $due_at && $now > $due_at;
 
                     // Check if this specific user already ordered this event
                     $check = $pdo->prepare("SELECT oid FROM orders WHERE uid = ? AND eid = ?");
                     $check->execute([$uid, $e['eid']]);
                     $already_ordered = $check->fetch();
+                    $desc_path = __DIR__ . "/events/{$e['eid']}.html";
+                    $desc_exists = file_exists($desc_path);
+                    $can_reserve = $is_eligible && $stock > 0 && !$already_ordered && !$is_expired && $is_open;
                 ?>
                 <tr>
                     <td><?php echo $e['eid']; ?></td>
@@ -100,6 +105,8 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
                         <?php 
                         if ($already_ordered) {
                             echo "<span class='status-done'>已预约</span>";
+                        } elseif ($is_expired) {
+                            echo "<span class='status-none'>已截止</span>";
                         } elseif (!$is_open) {
                             echo "<span style='color:#ffc107'>未到时间</span>";
                         } elseif ($stock <= 0) {
@@ -113,10 +120,16 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
                     </td>
                     <td><?php echo htmlspecialchars($e['send_date']); ?></td>
                     <td>
-                        <?php if (!$already_ordered && $is_eligible && $stock > 0 && $is_open): ?>
+                        <?php if ($desc_exists): ?>
                             <a href="/events/<?php echo $e['eid']; ?>.html">详情</a>
                         <?php else: ?>
-                            --
+                            <span>详情</span>
+                        <?php endif; ?>
+                        <span> | </span>
+                        <?php if ($can_reserve): ?>
+                            <a href="order.php?id=<?php echo $e['eid']; ?>">预约</a>
+                        <?php else: ?>
+                            <span>预约</span>
                         <?php endif; ?>
                     </td>
                 </tr>
