@@ -42,7 +42,18 @@ try {
 
     $current_used = (int)$event['used'];
 
-    // 2.1 ALIGN SEQUENCE: Ensure used count matches existing orders
+    // 2.1 ALIGN COUNTS: Ensure used count matches existing orders
+    $stmt_live_count = $pdo->prepare("
+        SELECT COUNT(*) AS live_count
+        FROM orders
+        WHERE eid = ?
+        FOR UPDATE
+    ");
+    $stmt_live_count->execute([$eid]);
+    $live_count_row = $stmt_live_count->fetch();
+    $live_count = $live_count_row ? (int)$live_count_row['live_count'] : 0;
+
+    // 2.2 SEQUENCE TRACKING: Keep OID sequence monotonic without impacting stock
     $stmt_max_seq = $pdo->prepare("
         SELECT MAX(CAST(SUBSTRING_INDEX(oid, '-', -1) AS UNSIGNED)) AS max_seq
         FROM orders
@@ -53,7 +64,7 @@ try {
     $max_seq_row = $stmt_max_seq->fetch();
     $max_seq = $max_seq_row && $max_seq_row['max_seq'] !== null ? (int)$max_seq_row['max_seq'] : 0;
 
-    $effective_used = max($current_used, $max_seq);
+    $effective_used = max($current_used, $live_count);
     $remaining = $event['total'] - $effective_used;
     if ($remaining <= 0) {
         throw new Exception("O04"); // Out of stock
@@ -67,7 +78,7 @@ try {
     }
 
     // 4. GENERATE OID
-    $next_seq_num = $effective_used + 1;
+    $next_seq_num = max($max_seq, $live_count) + 1;
     $next_seq = str_pad($next_seq_num, 4, '0', STR_PAD_LEFT);
     $oid = "J-" . $eid . "-" . $next_seq;
 
@@ -81,7 +92,7 @@ try {
 
     // 6. UPDATE EVENT: Increment count
     $stmt_update = $pdo->prepare("UPDATE events SET used = ? WHERE eid = ?");
-    $stmt_update->execute([$next_seq_num, $eid]);
+    $stmt_update->execute([$live_count + 1, $eid]);
 
     $pdo->commit();
     
