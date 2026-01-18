@@ -15,9 +15,13 @@
 本项目是小规模无料发放的入门框架，强调可读性与可改造性，不依赖重型框架。
 
 ## 文档
+- 安装与配置指南：[`docs/setup-guide.zh.md`](docs/setup-guide.zh.md)
 - 物流追踪 API 适配指南：[`docs/api-adaptation.zh.md`](docs/api-adaptation.zh.md)
 - 自动到点开启草案：[`docs/auto-event-draft.zh.md`](docs/auto-event-draft.zh.md)
 - 数据库结构参考：[`docs/database-schema.zh.md`](docs/database-schema.zh.md)
+
+## 入口页面（index.html）
+如需在站点根目录提供简单的入口页面，可复制 [`docs/examples/index.html`](docs/examples/index.html) 到 Web 根目录并自行定制，用于引导用户注册与登录。
 
 ## 免责声明
 开发者搭建了整体框架和逻辑，但大多数代码是在 Gemini 与 Codex 的辅助下完成。开发者并非专业工程师，仅希望提供一个可用的基础版本。
