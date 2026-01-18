@@ -19,5 +19,8 @@ This project is meant to be a practical starter for small-scale giveaway operati
 - Auto-open event draft: [`docs/auto-event-draft.md`](docs/auto-event-draft.md)
 - Database schema reference: [`docs/database-schema.md`](docs/database-schema.md)
 
+## Landing Page (index.html)
+Create your own `index.html` in your web root that links to the signup and login pages. An example file is provided in [`docs/examples/index.html`](docs/examples/index.html) so you can copy it into place and customize it for your deployment.
+
 ## Disclaimer
 The developer designed the overall framework and logic, but most of the coding was completed with assistance from Gemini and Codex. The developer is not a professional and only has a limited understanding of PHP; the goal is simply to provide something usable.
