@@ -27,6 +27,18 @@ function normalize_datetime_input($value) {
     return $value;
 }
 
+function format_datetime_local($value) {
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '';
+    }
+    $value = str_replace(' ', 'T', $value);
+    if (strlen($value) >= 16) {
+        return substr($value, 0, 16);
+    }
+    return $value;
+}
+
 // 1. Handle POST Actions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     csrf_require();
@@ -64,6 +76,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    if (isset($_POST['edit_event'], $_POST['eid'])) {
+        $eid = trim($_POST['eid']);
+        $name = trim($_POST['name']);
+        $total = (int)$_POST['total'];
+        $due_date = normalize_datetime_input($_POST['due_date'] ?? '');
+        $start_at = normalize_datetime_input($_POST['start_at'] ?? '');
+        $send_date = $_POST['send_date'];
+        $send_way = $_POST['send_way'];
+        $allow_group = trim($_POST['allow_group']);
+        $choice_amount = (int)$_POST['choice_amount'];
+        $xa_allow = isset($_POST['xa_allow']) ? 1 : 0;
+        $is_hidden = isset($_POST['is_hidden']) ? 1 : 0;
+
+        $stmt = $pdo->prepare("SELECT used FROM events WHERE eid = ?");
+        $stmt->execute([$eid]);
+        $current_event = $stmt->fetch();
+        if (!$current_event) {
+            $msg = "活动 $eid 不存在。";
+        } elseif ($total < (int)$current_event['used']) {
+            $msg = "活动 $eid 的总量不能小于已用数量。";
+        } else {
+            $stmt = $pdo->prepare("UPDATE events SET name = ?, total = ?, due_date = ?, start_at = ?, send_date = ?, send_way = ?, allow_group = ?, choice_amount = ?, xa_allow = ?, is_hidden = ? WHERE eid = ?");
+            $stmt->execute([$name, $total, $due_date, $start_at, $send_date, $send_way, $allow_group, $choice_amount, $xa_allow, $is_hidden, $eid]);
+            $msg = "活动 $eid 已更新。";
+        }
+    }
+
     // 2. Handle New Event Creation
     if (isset($_POST['add_event'])) {
         $eid = trim($_POST['eid']);
@@ -91,6 +130,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // 3. Fetch All Events
 $stmt = $pdo->query("SELECT * FROM events ORDER BY eid DESC");
 $events = $stmt->fetchAll();
+$edit_event = null;
+if (isset($_GET['edit_eid'])) {
+    $stmt = $pdo->prepare("SELECT * FROM events WHERE eid = ?");
+    $stmt->execute([$_GET['edit_eid']]);
+    $edit_event = $stmt->fetch();
+}
 ?>
 
 <!DOCTYPE html>
@@ -112,6 +157,7 @@ $events = $stmt->fetchAll();
         .btn-hide { background: #6c757d; color: #fff; }
         .btn-show { background: #007bff; color: #fff; }
         .btn-delete { background: #dc3545; color: #fff; }
+        .btn-edit { background: #17a2b8; color: #fff; }
     </style>
 </head>
 <body>
@@ -154,6 +200,43 @@ $events = $stmt->fetchAll();
             <button type="submit" name="add_event" class="btn btn-add">发布活动</button>
         </form>
     </div>
+
+    <?php if ($edit_event): ?>
+    <div class="form-box">
+        <h4>编辑活动 <?php echo htmlspecialchars($edit_event['eid']); ?></h4>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+            <input type="hidden" name="eid" value="<?php echo htmlspecialchars($edit_event['eid']); ?>">
+            <table style="background: transparent; border:none;">
+                <tr>
+                    <td>活动名称: <br><input type="text" name="name" required style="width:200px;" value="<?php echo htmlspecialchars($edit_event['name']); ?>"></td>
+                    <td>总量: <br><input type="number" name="total" required value="<?php echo htmlspecialchars($edit_event['total']); ?>"></td>
+                    <td>预计发出: <br><input type="text" name="send_date" value="<?php echo htmlspecialchars($edit_event['send_date']); ?>"></td>
+                </tr>
+                <tr>
+                    <td>截止时间: <br><input type="datetime-local" name="due_date" required value="<?php echo htmlspecialchars(format_datetime_local($edit_event['due_date'])); ?>"></td>
+                    <td>开放时间: <br><input type="datetime-local" name="start_at" value="<?php echo htmlspecialchars(format_datetime_local($edit_event['start_at'])); ?>"></td>
+                    <td>发货方式: <br>
+                        <select name="send_way">
+                            <option value="post" <?php if ($edit_event['send_way'] === 'post') echo 'selected'; ?>>中国邮政 (Post)</option>
+                            <option value="express" <?php if ($edit_event['send_way'] === 'express') echo 'selected'; ?>>快递 (Express)</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>允许组: <br><input type="text" name="allow_group" value="<?php echo htmlspecialchars($edit_event['allow_group']); ?>"></td>
+                    <td>选项数: <br><input type="number" name="choice_amount" value="<?php echo htmlspecialchars($edit_event['choice_amount']); ?>"></td>
+                    <td>
+                        <label><input type="checkbox" name="xa_allow" <?php if ($edit_event['xa_allow']) echo 'checked'; ?>> 允许挂号</label><br>
+                        <label style="color:#ffc107;"><input type="checkbox" name="is_hidden" <?php if ($edit_event['is_hidden']) echo 'checked'; ?>> 隐藏活动</label>
+                    </td>
+                </tr>
+            </table>
+            <button type="submit" name="edit_event" class="btn btn-edit">保存修改</button>
+            <a href="admin_events.php" class="btn btn-hide">取消</a>
+        </form>
+    </div>
+    <?php endif; ?>
 
     <h3>现有活动列表</h3>
     <table>
@@ -212,6 +295,7 @@ $events = $stmt->fetchAll();
                             <button type="submit" name="toggle_visibility" value="hide" class="btn btn-hide">设为隐藏</button>
                         </form>
                     <?php endif; ?>
+                    <a href="admin_events.php?edit_eid=<?php echo urlencode($e['eid']); ?>" class="btn btn-edit">编辑</a>
                     <form method="POST" style="display:inline;" onsubmit="return confirm('确定要删除该活动及其所有订单吗？此操作不可撤销。') && confirm('请再次确认：删除后无法恢复，是否继续？');">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" name="eid" value="<?php echo htmlspecialchars($e['eid']); ?>">
