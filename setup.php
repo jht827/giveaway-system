@@ -408,7 +408,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
                 $values['admin_social'],
             ]);
 
-            if (!is_writable(__DIR__ . '/config.php')) {
+            $configPath = __DIR__ . '/config.php';
+            if (is_file($configPath)) {
+                if (!is_writable($configPath)) {
+                    throw new RuntimeException(t('config_not_writable'));
+                }
+            } elseif (!is_writable(__DIR__)) {
                 throw new RuntimeException(t('config_not_writable'));
             }
 
@@ -428,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
                 'db_charset' => $values['db_charset'],
             ];
 
-            if (!setup_write_config(__DIR__ . '/config.php', $configValues)) {
+            if (!setup_write_config($configPath, $configValues)) {
                 throw new RuntimeException(t('config_write_fail'));
             }
 
