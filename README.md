@@ -15,6 +15,7 @@ A giveaway system for individuals looking to distribute free items in an e-comme
 This project is meant to be a practical starter for small-scale giveaway operations. It prioritizes clarity and simplicity so it can be adapted without heavy framework requirements.
 
 ## Documentation
+- Setup guide: [`docs/setup-guide.md`](docs/setup-guide.md)
 - Tracking API adaptation guide: [`docs/api-adaptation.md`](docs/api-adaptation.md)
 - Auto-open event draft: [`docs/auto-event-draft.md`](docs/auto-event-draft.md)
 - Database schema reference: [`docs/database-schema.md`](docs/database-schema.md)
