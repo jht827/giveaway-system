@@ -353,6 +353,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             }
         } catch (Throwable $e) {
             $setupRequiresConfirmation = true;
+            if (empty($_POST['confirm_fresh'])) {
+                $errors[] = t('confirm_required');
+            }
         }
     }
 
