@@ -13,7 +13,7 @@ $language = $_GET['lang'] ?? '';
 $language = strtolower($language);
 if ($language !== 'zh' && $language !== 'en') {
     $accept = strtolower($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
-    $language = str_starts_with($accept, 'zh') ? 'zh' : 'en';
+    $language = strpos($accept, 'zh') === 0 ? 'zh' : 'en';
 }
 
 $translations = [
@@ -264,14 +264,6 @@ if (!$setupBlocked) {
     $existingConfig = setup_read_config_db_settings(__DIR__ . '/config.php');
     if ($existingConfig !== null) {
         $setupRequiresConfirmation = true;
-        try {
-            if (setup_database_has_tables($existingConfig)) {
-                $errors[] = t('existing_tables');
-                $setupBlocked = true;
-            }
-        } catch (Throwable $e) {
-            $setupRequiresConfirmation = true;
-        }
     }
 }
 
@@ -344,6 +336,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
 
     if ($setupRequiresConfirmation && empty($_POST['confirm_fresh'])) {
         $errors[] = t('confirm_required');
+    }
+
+    if (empty($errors)) {
+        $targetConfig = [
+            'host' => $values['db_host'],
+            'name' => $values['db_name'],
+            'user' => $values['db_user'],
+            'pass' => $values['db_pass'],
+            'charset' => $values['db_charset'],
+        ];
+
+        try {
+            if (setup_database_has_tables($targetConfig)) {
+                $errors[] = t('existing_tables');
+            }
+        } catch (Throwable $e) {
+            $setupRequiresConfirmation = true;
+        }
     }
 
     if (empty($errors)) {
