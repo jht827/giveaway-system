@@ -81,8 +81,6 @@ $state_text = [0 => "等待发放 (Pending)", 1 => "已发出 (Sent)", 2 => "确
         .btn { border: 1px solid #333; padding: 6px 12px; text-decoration: none; color: black; background: #eee; cursor: pointer; display: inline-block; }
         .btn-red { background: #900; color: white; border: none; }
         
-        /* Debug UI */
-        .debug-console { background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; margin-top: 20px; white-space: pre-wrap; border: 1px solid #555; overflow-x: auto; }
         .payment-box { background: #fff0f0; border: 1px dashed #ff4d4f; padding: 10px; margin-top: 5px; }
     </style>
 </head>
@@ -171,13 +169,6 @@ $state_text = [0 => "等待发放 (Pending)", 1 => "已发出 (Sent)", 2 => "确
             <?php endif; ?>
         </form>
     </div>
-
-    <?php if (isset($track_res['raw']) && (($_SESSION['group'] ?? '') == 'owner' || empty($tracking_data))): ?>
-        <div class="debug-console">
-[API DEBUG CONSOLE]
-<?php echo htmlspecialchars($track_res['raw']); ?>
-        </div>
-    <?php endif; ?>
 
 </div>
 
