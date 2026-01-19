@@ -130,7 +130,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // 3. Fetch Orders
-$eid_filter = $_GET['eid'] ?? '';
+$eid_filter = $_POST['eid'] ?? '';
 $sql = "SELECT o.*, u.qq, e.name as event_name, a.postcode, a.addr, a.phone, a.name as recipient_name
         FROM orders o 
         JOIN users u ON o.uid = u.uid 
@@ -159,13 +159,20 @@ $orders = $pdo->query($sql)->fetchAll();
     <div class="container">
         <h2>订单处理终端 (Manual Payment Logic)</h2>
         
-        <form method="GET" style="margin-bottom:20px;">
+        <div style="margin-bottom:20px;">
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
             筛选EID: <input type="text" name="eid" value="<?php echo htmlspecialchars($eid_filter); ?>">
             <button type="submit">筛选</button>
-            <?php if($eid_filter): ?>
-                <a href="admin_export.php?eid=<?php echo urlencode($eid_filter); ?>" class="btn-export">导出表格 (CSV)</a>
-            <?php endif; ?>
         </form>
+            <?php if($eid_filter): ?>
+                <form method="POST" action="admin_export.php" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="eid" value="<?php echo htmlspecialchars($eid_filter, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn-export">导出表格 (CSV)</button>
+                </form>
+            <?php endif; ?>
+        </div>
 
         <?php if($msg) echo "<p style='color:#0f0;'>$msg</p>"; ?>
         <?php if($import_summary) echo "<p style='color:#0f0;'>" . htmlspecialchars($import_summary, ENT_QUOTES, 'UTF-8') . "</p>"; ?>

@@ -6,15 +6,22 @@
 
 require 'db.php';
 session_start();
+require 'csrf.php';
 
 // Security Check
 if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
     die("Access Denied.");
 }
 
-$eid = $_GET['eid'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    die("Error: POST required.");
+}
+
+csrf_require();
+
+$eid = $_POST['eid'] ?? '';
 if (empty($eid)) {
-    die("Error: Please specify an EID (e.g., admin_export.php?eid=0001)");
+    die("Error: Please specify an EID.");
 }
 
 // 1. Set Headers for CSV Download

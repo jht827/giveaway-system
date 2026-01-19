@@ -131,9 +131,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 $stmt = $pdo->query("SELECT * FROM events ORDER BY eid DESC");
 $events = $stmt->fetchAll();
 $edit_event = null;
-if (isset($_GET['edit_eid'])) {
+if (isset($_POST['edit_eid'])) {
     $stmt = $pdo->prepare("SELECT * FROM events WHERE eid = ?");
-    $stmt->execute([$_GET['edit_eid']]);
+    $stmt->execute([$_POST['edit_eid']]);
     $edit_event = $stmt->fetch();
 }
 ?>
@@ -295,7 +295,11 @@ if (isset($_GET['edit_eid'])) {
                             <button type="submit" name="toggle_visibility" value="hide" class="btn btn-hide">设为隐藏</button>
                         </form>
                     <?php endif; ?>
-                    <a href="admin_events.php?edit_eid=<?php echo urlencode($e['eid']); ?>" class="btn btn-edit">编辑</a>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                        <input type="hidden" name="edit_eid" value="<?php echo htmlspecialchars($e['eid']); ?>">
+                        <button type="submit" class="btn btn-edit">编辑</button>
+                    </form>
                     <form method="POST" style="display:inline;" onsubmit="return confirm('确定要删除该活动及其所有订单吗？此操作不可撤销。') && confirm('请再次确认：删除后无法恢复，是否继续？');">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" name="eid" value="<?php echo htmlspecialchars($e['eid']); ?>">
