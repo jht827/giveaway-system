@@ -1,6 +1,7 @@
 <?php
 require 'db.php';
 session_start();
+require 'csrf.php';
 
 // SIMPLE ADMIN SECURITY: Only 'owner' group can access
 if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
@@ -10,9 +11,10 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
 $msg = "";
 
 // 1. Handle Status Toggles
-if (isset($_GET['action']) && isset($_GET['uid'])) {
-    $target_uid = $_GET['uid'];
-    $action = $_GET['action'];
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action'], $_POST['uid'])) {
+    csrf_require();
+    $target_uid = $_POST['uid'];
+    $action = $_POST['action'];
 
     if ($action == 'verify') {
         $stmt = $pdo->prepare("UPDATE users SET verified = 1 WHERE uid = ?");
@@ -27,7 +29,7 @@ if (isset($_GET['action']) && isset($_GET['uid'])) {
     } elseif ($action == 'enable') {
         $stmt = $pdo->prepare("UPDATE users SET disabled = 0 WHERE uid = ?");
         $stmt->execute([$target_uid]);
-    } elseif ($action == 'delete' && isset($_GET['confirm']) && $_GET['confirm'] === '1') {
+    } elseif ($action == 'delete' && isset($_POST['confirm']) && $_POST['confirm'] === '1') {
         $pdo->beginTransaction();
         try {
             $stmt_orders = $pdo->prepare("DELETE FROM orders WHERE uid = ?");
@@ -61,24 +63,12 @@ $users = $stmt->fetchAll();
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #555; }
         th, td { border: 1px solid #222; padding: 10px; text-align: left; }
         th { background: #222; color: #0f0; }
-        .btn { padding: 4px 8px; text-decoration: none; font-size: 0.85em; border: 1px solid #000; }
+        .btn { padding: 4px 8px; text-decoration: none; font-size: 0.85em; border: 1px solid #000; cursor: pointer; }
         .btn-green { background: #28a745; color: white; }
         .btn-red { background: #dc3545; color: white; }
         .btn-gray { background: #6c757d; color: white; }
         .status-badge { font-weight: bold; padding: 2px 5px; }
     </style>
-    <script>
-        function confirmDeleteUser(uid) {
-            if (!confirm('即将删除该用户及其所有订单，是否继续？')) {
-                return false;
-            }
-            if (!confirm('此操作不可撤销，确认删除用户 ' + uid + '？')) {
-                return false;
-            }
-            window.location.href = '?action=delete&confirm=1&uid=' + encodeURIComponent(uid);
-            return false;
-        }
-    </script>
 </head>
 <body>
 
@@ -121,18 +111,44 @@ $users = $stmt->fetchAll();
                 </td>
                 <td>
                     <?php if(!$u['verified']): ?>
-                        <a href="?action=verify&uid=<?php echo $u['uid']; ?>" class="btn btn-green">批准</a>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="action" value="verify">
+                            <input type="hidden" name="uid" value="<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-green">批准</button>
+                        </form>
                     <?php else: ?>
-                        <a href="?action=unverify&uid=<?php echo $u['uid']; ?>" class="btn btn-gray">撤销</a>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="action" value="unverify">
+                            <input type="hidden" name="uid" value="<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-gray">撤销</button>
+                        </form>
                     <?php endif; ?>
 
                     <?php if(!$u['disabled']): ?>
-                        <a href="?action=disable&uid=<?php echo $u['uid']; ?>" class="btn btn-red">封禁</a>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="action" value="disable">
+                            <input type="hidden" name="uid" value="<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-red">封禁</button>
+                        </form>
                     <?php else: ?>
-                        <a href="?action=enable&uid=<?php echo $u['uid']; ?>" class="btn btn-green">解封</a>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="action" value="enable">
+                            <input type="hidden" name="uid" value="<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-green">解封</button>
+                        </form>
                     <?php endif; ?>
 
-                    <a href="#" class="btn btn-red" onclick="return confirmDeleteUser('<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>');">删除</a>
+                    <form method="POST" style="display:inline;" onsubmit="return confirm('即将删除该用户及其所有订单，是否继续？') && confirm('此操作不可撤销，确认删除用户 <?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>？');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="confirm" value="1">
+                        <input type="hidden" name="uid" value="<?php echo htmlspecialchars($u['uid'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" class="btn btn-red">删除</button>
+                    </form>
                 </td>
             </tr>
             <?php endforeach; ?>
