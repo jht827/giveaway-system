@@ -40,5 +40,7 @@ $event_count = $pdo->query("SELECT COUNT(*) FROM events WHERE is_hidden = 0")->f
         <br>
         <a href="home.php" style="color:#aaa;"><- 返回前台首页</a>
     </div>
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

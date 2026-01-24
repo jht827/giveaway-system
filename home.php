@@ -157,5 +157,7 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
     });
 </script>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

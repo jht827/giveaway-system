@@ -67,5 +67,7 @@ $state_map = [
     <?php endif; ?>
 </div>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

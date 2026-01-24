@@ -633,5 +633,7 @@ $csrfToken = setup_csrf_token();
         </form>
     <?php endif; ?>
 </div>
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

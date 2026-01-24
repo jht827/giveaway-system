@@ -81,5 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <p>未注册？ <a href="register.php">去注册</a></p>
 </div>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>
