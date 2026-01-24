@@ -256,5 +256,7 @@ $orders = $pdo->query($sql)->fetchAll();
             <a href="admin.php" style="color:#0f0;"><- 返回后台</a>
         </div>
     </div>
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

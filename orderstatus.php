@@ -172,5 +172,7 @@ $state_text = [0 => "等待发放 (Pending)", 1 => "已发出 (Sent)", 2 => "确
 
 </div>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

@@ -49,6 +49,8 @@ if ($start_at_dt && $now < $start_at_dt) {
             }
         }
     </script>
+    <?php include 'footer.php'; ?>
+
     </body>
     </html>
     <?php
@@ -103,5 +105,7 @@ if (!$addresses) {
         <button type="submit">确认预约</button>
     </form>
 </div>
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

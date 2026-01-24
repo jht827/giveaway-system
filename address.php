@@ -136,5 +136,7 @@ $my_addresses = $stmt->fetchAll();
     </form>
 </div>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

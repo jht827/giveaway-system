@@ -317,5 +317,7 @@ if (isset($_POST['edit_eid'])) {
     </div>
 </div>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

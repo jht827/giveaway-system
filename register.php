@@ -95,5 +95,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <a href="index.html">回到首页</a> | <a href="login.php">登 录</a>
 </div>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>
