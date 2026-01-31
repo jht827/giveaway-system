@@ -13,13 +13,22 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
     die("Access Denied.");
 }
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    die("Error: POST required.");
+$method = $_SERVER["REQUEST_METHOD"];
+if ($method !== "POST" && $method !== "GET") {
+    die("Error: POST or GET required.");
 }
 
-csrf_require();
+$csrf_token = $method === "POST"
+    ? ($_POST['csrf_token'] ?? null)
+    : ($_GET['csrf_token'] ?? null);
+if (!csrf_validate($csrf_token)) {
+    http_response_code(403);
+    die("ERR: CSRF token invalid.");
+}
 
-$eid = $_POST['eid'] ?? '';
+$eid = $method === "POST"
+    ? ($_POST['eid'] ?? '')
+    : ($_GET['eid'] ?? '');
 if (empty($eid)) {
     die("Error: Please specify an EID.");
 }
