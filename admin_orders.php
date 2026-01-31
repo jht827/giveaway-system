@@ -131,6 +131,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // 3. Fetch Orders
 $eid_filter = $_POST['eid'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $_SESSION['admin_orders_eid_filter'] = $eid_filter;
+}
 $sql = "SELECT o.*, u.qq, e.name as event_name, a.postcode, a.addr, a.phone, a.name as recipient_name
         FROM orders o 
         JOIN users u ON o.uid = u.uid 

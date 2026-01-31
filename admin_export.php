@@ -13,13 +13,21 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
     die("Access Denied.");
 }
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    die("Error: POST required.");
+$method = $_SERVER["REQUEST_METHOD"];
+if ($method !== "POST" && $method !== "GET") {
+    die("Error: POST or GET required.");
 }
 
-csrf_require();
+if ($method === "POST") {
+    csrf_require();
+}
 
-$eid = $_POST['eid'] ?? '';
+$eid = $method === "POST"
+    ? ($_POST['eid'] ?? '')
+    : ($_GET['eid'] ?? '');
+if ($eid === '' && isset($_SESSION['admin_orders_eid_filter'])) {
+    $eid = (string)$_SESSION['admin_orders_eid_filter'];
+}
 if (empty($eid)) {
     die("Error: Please specify an EID.");
 }
