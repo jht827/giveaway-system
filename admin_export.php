@@ -25,6 +25,9 @@ if ($method === "POST") {
 $eid = $method === "POST"
     ? ($_POST['eid'] ?? '')
     : ($_GET['eid'] ?? '');
+if ($eid === '' && isset($_SESSION['admin_orders_eid_filter'])) {
+    $eid = (string)$_SESSION['admin_orders_eid_filter'];
+}
 if (empty($eid)) {
     die("Error: Please specify an EID.");
 }
