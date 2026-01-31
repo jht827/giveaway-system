@@ -18,12 +18,8 @@ if ($method !== "POST" && $method !== "GET") {
     die("Error: POST or GET required.");
 }
 
-$csrf_token = $method === "POST"
-    ? ($_POST['csrf_token'] ?? null)
-    : ($_GET['csrf_token'] ?? null);
-if (!csrf_validate($csrf_token)) {
-    http_response_code(403);
-    die("ERR: CSRF token invalid.");
+if ($method === "POST") {
+    csrf_require();
 }
 
 $eid = $method === "POST"
