@@ -44,6 +44,7 @@ $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
         用户: <b><?php echo htmlspecialchars($uid); ?></b> [<?php echo strtoupper($user_group); ?>] | 
         <a href="address.php">管理地址</a> | 
         <a href="my_orders.php">我的预约</a> | 
+        <a href="myaccount.php">账户中心</a> | 
         <a href="logout.php">登出</a>
     </div>
 

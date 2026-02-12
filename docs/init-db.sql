@@ -10,6 +10,7 @@ USE giveaway_sys;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS addresses;
 DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS redeem_codes;
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
@@ -22,7 +23,30 @@ CREATE TABLE users (
   autoget tinyint(1) DEFAULT '0',
   verified tinyint(1) DEFAULT '0',
   disabled tinyint(1) DEFAULT '0',
+  redeem_fail_count int NOT NULL DEFAULT '0',
+  redeem_locked_until datetime DEFAULT NULL,
   PRIMARY KEY (uid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+
+CREATE TABLE redeem_codes (
+  id bigint NOT NULL AUTO_INCREMENT,
+  code varchar(64) NOT NULL,
+  code_type enum('public','bound') NOT NULL DEFAULT 'public',
+  bound_uid varchar(50) DEFAULT NULL,
+  target_group enum('new','auto','owner') NOT NULL DEFAULT 'auto',
+  is_used tinyint(1) NOT NULL DEFAULT '0',
+  redeemed_by varchar(50) DEFAULT NULL,
+  redeemed_at datetime DEFAULT NULL,
+  created_by varchar(50) NOT NULL,
+  created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_redeem_code (code),
+  KEY idx_redeem_bound_uid (bound_uid),
+  KEY idx_redeem_is_used (is_used),
+  CONSTRAINT fk_redeem_bound_uid FOREIGN KEY (bound_uid) REFERENCES users (uid) ON DELETE SET NULL,
+  CONSTRAINT fk_redeem_redeemed_by FOREIGN KEY (redeemed_by) REFERENCES users (uid) ON DELETE SET NULL,
+  CONSTRAINT fk_redeem_created_by FOREIGN KEY (created_by) REFERENCES users (uid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 CREATE TABLE events (
