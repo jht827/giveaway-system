@@ -38,7 +38,7 @@ CREATE TABLE redeem_codes (
   is_used tinyint(1) NOT NULL DEFAULT '0',
   redeemed_by varchar(50) DEFAULT NULL,
   redeemed_at datetime DEFAULT NULL,
-  created_by varchar(50) NOT NULL,
+  created_by varchar(50) DEFAULT NULL,
   created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uniq_redeem_code (code),
@@ -46,7 +46,7 @@ CREATE TABLE redeem_codes (
   KEY idx_redeem_is_used (is_used),
   CONSTRAINT fk_redeem_bound_uid FOREIGN KEY (bound_uid) REFERENCES users (uid) ON DELETE SET NULL,
   CONSTRAINT fk_redeem_redeemed_by FOREIGN KEY (redeemed_by) REFERENCES users (uid) ON DELETE SET NULL,
-  CONSTRAINT fk_redeem_created_by FOREIGN KEY (created_by) REFERENCES users (uid)
+  CONSTRAINT fk_redeem_created_by FOREIGN KEY (created_by) REFERENCES users (uid) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 CREATE TABLE events (

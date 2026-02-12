@@ -10,6 +10,12 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
 $msg = "";
 $err = "";
 
+
+function count_owner_accounts(PDO $pdo): int
+{
+    return (int)$pdo->query("SELECT COUNT(*) FROM users WHERE user_group = 'owner'")->fetchColumn();
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action'], $_POST['uid'])) {
     csrf_require();
     $target_uid = trim($_POST['uid']);
@@ -34,12 +40,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action'], $_POST['uid
     } elseif ($action === 'set_group' && isset($_POST['new_group'])) {
         $new_group = $_POST['new_group'];
         $allowed_groups = ['new', 'auto', 'owner'];
+
         if (!in_array($new_group, $allowed_groups, true)) {
             $err = "无效的用户组。";
         } else {
-            $stmt = $pdo->prepare("UPDATE users SET user_group = ? WHERE uid = ?");
-            $stmt->execute([$new_group, $target_uid]);
-            $msg = "用户 $target_uid 的用户组已更新为 " . strtoupper($new_group) . "。";
+            $current_group_stmt = $pdo->prepare('SELECT user_group FROM users WHERE uid = ?');
+            $current_group_stmt->execute([$target_uid]);
+            $current_group = $current_group_stmt->fetchColumn();
+
+            if (!$current_group) {
+                $err = "目标用户不存在。";
+            } elseif ($current_group === 'owner' && $new_group !== 'owner' && count_owner_accounts($pdo) <= 1) {
+                $err = "不能降级最后一个 OWNER 账户。";
+            } else {
+                $stmt = $pdo->prepare("UPDATE users SET user_group = ? WHERE uid = ?");
+                $stmt->execute([$new_group, $target_uid]);
+                if ($target_uid === $_SESSION['uid']) {
+                    $_SESSION['group'] = $new_group;
+                }
+                $msg = "用户 $target_uid 的用户组已更新为 " . strtoupper($new_group) . "。";
+            }
         }
     } elseif ($action === 'reset_password' && isset($_POST['new_password'])) {
         $new_password = $_POST['new_password'];
@@ -52,19 +72,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action'], $_POST['uid
             $msg = "用户 $target_uid 密码已重置。";
         }
     } elseif ($action === 'delete' && isset($_POST['confirm']) && $_POST['confirm'] === '1') {
-        $pdo->beginTransaction();
-        try {
-            $stmt_orders = $pdo->prepare("DELETE FROM orders WHERE uid = ?");
-            $stmt_orders->execute([$target_uid]);
+        $target_group_stmt = $pdo->prepare('SELECT user_group FROM users WHERE uid = ?');
+        $target_group_stmt->execute([$target_uid]);
+        $target_group = $target_group_stmt->fetchColumn();
 
-            $stmt_user = $pdo->prepare("DELETE FROM users WHERE uid = ?");
-            $stmt_user->execute([$target_uid]);
+        if (!$target_group) {
+            $err = "目标用户不存在。";
+        } elseif ($target_group === 'owner' && count_owner_accounts($pdo) <= 1) {
+            $err = "不能删除最后一个 OWNER 账户。";
+        } else {
+            $pdo->beginTransaction();
+            try {
+                $stmt_orders = $pdo->prepare("DELETE FROM orders WHERE uid = ?");
+                $stmt_orders->execute([$target_uid]);
 
-            $pdo->commit();
-            $msg = "用户 $target_uid 及其所有订单已删除。";
-        } catch (Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
+                $stmt_user = $pdo->prepare("DELETE FROM users WHERE uid = ?");
+                $stmt_user->execute([$target_uid]);
+
+                $pdo->commit();
+                $msg = "用户 $target_uid 及其所有订单已删除。";
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $err = "删除失败：该用户可能仍被其他数据引用。";
+            }
         }
     }
 }
