@@ -37,6 +37,9 @@ $event_count = $pdo->query("SELECT COUNT(*) FROM events WHERE is_hidden = 0")->f
         <a href="admin_orders.php" class="menu-item">
             订单处理终端 (Orders) <span class="stat">[ <?php echo $order_count; ?> 待发货 ]</span>
         </a>
+        <a href="admin_codes.php" class="menu-item">
+            兑换码中心 (Codes)
+        </a>
         <br>
         <a href="home.php" style="color:#aaa;"><- 返回前台首页</a>
     </div>
