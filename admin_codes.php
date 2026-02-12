@@ -10,18 +10,22 @@ if (!isset($_SESSION['uid']) || $_SESSION['group'] !== 'owner') {
 $msg = '';
 $err = '';
 
-function is_valid_windows95_prefix(string $prefix): bool {
+function is_valid_windows95_prefix(string $prefix): bool
+{
     if (!preg_match('/^\d{3}$/', $prefix)) {
         return false;
     }
+
     $blocked = ['333', '444', '555', '666', '777', '888', '999'];
     if (in_array($prefix, $blocked, true)) {
         return false;
     }
+
     return ((int)$prefix % 7) === 0;
 }
 
-function resolve_prefix(?string $requested): string {
+function resolve_prefix(?string $requested): string
+{
     $requested = trim((string)$requested);
     if ($requested !== '') {
         if (!is_valid_windows95_prefix($requested)) {
@@ -37,7 +41,8 @@ function resolve_prefix(?string $requested): string {
     return $candidate;
 }
 
-function generate_suffix_mod7(): string {
+function generate_suffix_mod7(): string
+{
     do {
         $suffix = str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT);
     } while ($suffix[0] === '0' || ((int)$suffix % 7) !== 0);
@@ -45,17 +50,45 @@ function generate_suffix_mod7(): string {
     return $suffix;
 }
 
-function generate_redeem_code(PDO $pdo, ?string $prefix): string {
+function generate_redeem_code(?string $prefix): string
+{
     $resolved_prefix = resolve_prefix($prefix);
+    return $resolved_prefix . '-' . generate_suffix_mod7();
+}
 
-    do {
-        $candidate = $resolved_prefix . '-' . generate_suffix_mod7();
-        $stmt = $pdo->prepare('SELECT id FROM redeem_codes WHERE code = ?');
-        $stmt->execute([$candidate]);
-        $exists = $stmt->fetchColumn();
-    } while ($exists);
+function is_duplicate_key_exception(Throwable $e): bool
+{
+    if (!($e instanceof PDOException)) {
+        return false;
+    }
 
-    return $candidate;
+    $code = $e->errorInfo[1] ?? null;
+    $sqlState = $e->errorInfo[0] ?? null;
+
+    return $code === 1062 || $sqlState === '23000';
+}
+
+function insert_generated_code(PDO $pdo, string $code_type, ?string $bound_uid, string $target_group, string $created_by, ?string $prefix): void
+{
+    $insert = $pdo->prepare(
+        'INSERT INTO redeem_codes (code, code_type, bound_uid, target_group, created_by) VALUES (?, ?, ?, ?, ?)'
+    );
+
+    for ($attempt = 0; $attempt < 50; $attempt++) {
+        $candidate = generate_redeem_code($prefix);
+
+        try {
+            $insert->execute([$candidate, $code_type, $bound_uid, $target_group, $created_by]);
+            return;
+        } catch (Throwable $e) {
+            if (is_duplicate_key_exception($e)) {
+                continue;
+            }
+            throw $e;
+        }
+    }
+
+    throw new RuntimeException('兑换码生成冲突过多，请重试。');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -66,27 +99,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($action === 'generate_public_batch') {
             $count = (int)($_POST['batch_count'] ?? 0);
             $prefix = $_POST['prefix'] ?? '';
+
             if ($count < 1 || $count > 1000) {
                 $err = '批量数量必须在 1 到 1000 之间。';
             } else {
-                $insert = $pdo->prepare('INSERT INTO redeem_codes (code, code_type, bound_uid, target_group, created_by) VALUES (?, ?, ?, ?, ?)');
+                $pdo->beginTransaction();
                 for ($i = 0; $i < $count; $i++) {
-                    $insert->execute([generate_redeem_code($pdo, $prefix), 'public', null, 'auto', $_SESSION['uid']]);
+                    insert_generated_code($pdo, 'public', null, 'auto', $_SESSION['uid'], $prefix);
                 }
+                $pdo->commit();
                 $msg = "已生成 {$count} 个通用兑换码。";
             }
         } elseif ($action === 'generate_all_bound') {
             $prefix = $_POST['prefix'] ?? '';
             $users = $pdo->query('SELECT uid FROM users ORDER BY uid ASC')->fetchAll(PDO::FETCH_COLUMN);
+
             if (!$users) {
                 $err = '没有可用用户。';
             } else {
-                $insert = $pdo->prepare('INSERT INTO redeem_codes (code, code_type, bound_uid, target_group, created_by) VALUES (?, ?, ?, ?, ?)');
+                $pdo->beginTransaction();
                 $created = 0;
                 foreach ($users as $user_uid) {
-                    $insert->execute([generate_redeem_code($pdo, $prefix), 'bound', $user_uid, 'auto', $_SESSION['uid']]);
+                    insert_generated_code($pdo, 'bound', $user_uid, 'auto', $_SESSION['uid'], $prefix);
                     $created++;
                 }
+                $pdo->commit();
                 $msg = "已为全部账户生成 {$created} 个绑定兑换码。";
             }
         } elseif ($action === 'generate_user_bound') {
@@ -101,20 +138,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } else {
                 $check = $pdo->prepare('SELECT uid FROM users WHERE uid = ?');
                 $check->execute([$bound_uid]);
+
                 if (!$check->fetchColumn()) {
                     $err = '用户不存在。';
                 } else {
-                    $insert = $pdo->prepare('INSERT INTO redeem_codes (code, code_type, bound_uid, target_group, created_by) VALUES (?, ?, ?, ?, ?)');
+                    $pdo->beginTransaction();
                     for ($i = 0; $i < $count; $i++) {
-                        $insert->execute([generate_redeem_code($pdo, $prefix), 'bound', $bound_uid, 'auto', $_SESSION['uid']]);
+                        insert_generated_code($pdo, 'bound', $bound_uid, 'auto', $_SESSION['uid'], $prefix);
                     }
+                    $pdo->commit();
                     $msg = "已为用户 {$bound_uid} 生成 {$count} 个绑定兑换码。";
                 }
             }
         }
     } catch (InvalidArgumentException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $err = $e->getMessage();
     } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $err = '兑换码生成失败，请稍后重试。';
     }
 }
@@ -226,7 +271,7 @@ $codes = $codes_stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td><?php echo ((int)$row['is_used'] === 1) ? 'Y' : 'N'; ?></td>
                     <td><?php echo htmlspecialchars((string)($row['redeemed_by'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                     <td><?php echo htmlspecialchars((string)($row['redeemed_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td><?php echo htmlspecialchars($row['created_by'], ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td><?php echo htmlspecialchars((string)($row['created_by'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                     <td><?php echo htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
                 </tr>
             <?php endforeach; ?>

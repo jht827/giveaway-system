@@ -7,91 +7,6 @@ $errors = [];
 $max_redeem_fail = 5;
 
 /**
- * Normalize user input to canonical redeem format.
- * - Remove spaces
- * - Convert 10 digits to NNN-NNNNNNN
- */
-function normalize_redeem_code(string $raw): string
-{
-    $clean = preg_replace('/\s+/', '', strtoupper(trim($raw)));
-
-    if (preg_match('/^\d{10}$/', $clean)) {
-        return substr($clean, 0, 3) . '-' . substr($clean, 3);
-    }
-
-    return $clean;
-}
-
-/**
- * Validate redeem code structure and checksum constraints.
- */
-function is_valid_windows95_style_code(string $code): bool
-{
-    if (!preg_match('/^(\d{3})-(\d{7})$/', $code, $matches)) {
-        return false;
-    }
-
-    $prefix = (int)$matches[1];
-    $suffix = (int)$matches[2];
-    $blocked_prefixes = [333, 444, 555, 666, 777, 888, 999];
-
-    if ($prefix % 7 !== 0 || in_array($prefix, $blocked_prefixes, true)) {
-        return false;
-    }
-
-    if ((int)$matches[2][0] === 0) {
-        return false;
-    }
-
-    return $suffix % 7 === 0;
-}
-
-/**
- * Read only the minimal account status needed for redeem flow.
- */
-function get_user_redeem_status(PDO $pdo, string $uid): ?array
-{
-    $stmt = $pdo->prepare('SELECT user_group, redeem_fail_count, redeem_locked_until FROM users WHERE uid = ?');
-    $stmt->execute([$uid]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
-}
-
-/**
- * Clear stale lock when lock duration has elapsed.
- */
-function clear_expired_redeem_lock(PDO $pdo, string $uid, array &$user_status, DateTime $now): void
-{
-    if (empty($user_status['redeem_locked_until'])) {
-        return;
-    }
-
-    $locked_until = new DateTime($user_status['redeem_locked_until'], new DateTimeZone('Asia/Shanghai'));
-    if ($locked_until <= $now) {
-        $stmt = $pdo->prepare('UPDATE users SET redeem_fail_count = 0, redeem_locked_until = NULL WHERE uid = ?');
-        $stmt->execute([$uid]);
-        $user_status['redeem_fail_count'] = 0;
-        $user_status['redeem_locked_until'] = null;
-    }
-}
-
-/**
- * Return lock message when redeem is currently disabled.
- */
-function get_redeem_lock_error(array $user_status, DateTime $now): ?string
-{
-    if (empty($user_status['redeem_locked_until'])) {
-        return null;
-    }
-
-    $locked_until = new DateTime($user_status['redeem_locked_until'], new DateTimeZone('Asia/Shanghai'));
-    if ($locked_until > $now) {
-        return '兑换功能已被临时锁定，请在 ' . $locked_until->format('Y-m-d H:i:s') . ' 后重试。';
-    }
-
-    return null;
-}
-
-/**
  * Check whether code record can be redeemed by this user.
  */
 function validate_code_row_for_user(?array $code_row, string $uid): array
@@ -209,25 +124,37 @@ function process_redeem_code(PDO $pdo, string $uid, int $max_redeem_fail, array 
         return;
     }
 
-    $user_status = get_user_redeem_status($pdo, $uid);
-    if (!$user_status) {
-        $errors[] = '账户状态异常，请重新登录。';
-        return;
-    }
-
-    $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
-    clear_expired_redeem_lock($pdo, $uid, $user_status, $now);
-
-    $lock_error = get_redeem_lock_error($user_status, $now);
-    if ($lock_error !== null) {
-        $errors[] = $lock_error;
-        return;
-    }
-
-    // Transaction: lock code row, verify state, then apply success/failure updates.
+    // Transaction: lock user row first (fail counter + lock state), then lock code row.
     $pdo->beginTransaction();
 
     try {
+        $status_stmt = $pdo->prepare('SELECT redeem_fail_count, redeem_locked_until FROM users WHERE uid = ? FOR UPDATE');
+        $status_stmt->execute([$uid]);
+        $user_status = $status_stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user_status) {
+            $pdo->rollBack();
+            $errors[] = '账户状态异常，请重新登录。';
+            return;
+        }
+
+        $now = new DateTime('now', new DateTimeZone('Asia/Shanghai'));
+        $locked_until_raw = $user_status['redeem_locked_until'] ?? null;
+
+        if (!empty($locked_until_raw)) {
+            $locked_until = new DateTime($locked_until_raw, new DateTimeZone('Asia/Shanghai'));
+            if ($locked_until > $now) {
+                $pdo->rollBack();
+                $errors[] = '兑换功能已被临时锁定，请在 ' . $locked_until->format('Y-m-d H:i:s') . ' 后重试。';
+                return;
+            }
+
+            // Lock expired: clear it while row is still locked.
+            $clear_stmt = $pdo->prepare('UPDATE users SET redeem_fail_count = 0, redeem_locked_until = NULL WHERE uid = ?');
+            $clear_stmt->execute([$uid]);
+            $user_status['redeem_fail_count'] = 0;
+        }
+
         $code_stmt = $pdo->prepare('SELECT * FROM redeem_codes WHERE code = ? FOR UPDATE');
         $code_stmt->execute([$code]);
         $code_row = $code_stmt->fetch(PDO::FETCH_ASSOC);
